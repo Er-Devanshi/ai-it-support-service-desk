@@ -1,0 +1,18 @@
+# ServiceDesk-AI — Python dependencies
+# Install with: pip install -r requirements.txt
+#
+# Phase 1 — minimal set required to run the FastAPI backend.
+# Versions chosen for Python 3.13 compatibility (pre-built wheels available).
+# Future phases will add: openai, langchain, chromadb, sqlalchemy, etc.
+
+# Web framework
+fastapi==0.115.12
+
+# ASGI server (used to run FastAPI locally)
+uvicorn[standard]==0.34.2
+
+# Data validation (FastAPI depends on this; pinned for reproducibility)
+pydantic==2.11.3
+
+# Environment variable loading — used when .env support is added
+python-dotenv==1.0.1

@@ -1,0 +1,251 @@
+================================================================================
+  ServiceDesk-AI — Sample IT Knowledge Base
+  Phase 1 | Plain-text format
+  
+  This file is a human-readable seed for the knowledge base.
+  In Phase 2 it will be chunked, embedded, and loaded into a vector database
+  (e.g. ChromaDB or FAISS) to power Retrieval-Augmented Generation (RAG).
+================================================================================
+
+--------------------------------------------------------------------------------
+FAQ 1 — Wi-Fi / Wireless Connection Not Working
+--------------------------------------------------------------------------------
+CATEGORY: Network
+
+PROBLEM:
+Employee cannot connect to the office or home Wi-Fi network. The device shows
+"No Internet" or fails to authenticate.
+
+SOLUTION:
+1. Restart your device and the wireless router/access point.
+2. On Windows: go to Settings → Network & Internet → Wi-Fi → Forget the network,
+   then reconnect and re-enter the password.
+3. Make sure Airplane Mode is turned OFF.
+4. Check if the issue is device-specific by testing another device on the same
+   network. If other devices connect fine, the problem is with your device.
+5. Update or reinstall the Wi-Fi adapter driver (Device Manager → Network Adapters).
+6. Run the Windows Network Troubleshooter: Settings → System → Troubleshoot.
+
+ESCALATION:
+If none of the above resolves the issue, or if multiple employees are affected,
+escalate to the Network Infrastructure team — it may be a router or DHCP issue.
+
+--------------------------------------------------------------------------------
+FAQ 2 — Password Reset
+--------------------------------------------------------------------------------
+CATEGORY: Account / Identity
+
+PROBLEM:
+Employee has forgotten their password, or the password has expired, and they
+cannot log in to their work account.
+
+SOLUTION:
+1. Visit the company self-service portal at: https://portal.company.internal
+2. Click "Forgot Password" and enter your registered work email address.
+3. Check your email (including spam/junk folder) for a reset link.
+4. Click the link and set a new password that meets the password policy:
+   - Minimum 12 characters
+   - At least one uppercase letter, one digit, and one special character
+   - Cannot reuse the last 5 passwords
+5. If you cannot access your email, call the IT helpdesk directly to verify
+   your identity and manually reset the password.
+
+NOTE:
+Passwords expire every 90 days. You will receive a reminder 14 days before expiry.
+
+--------------------------------------------------------------------------------
+FAQ 3 — VPN Connection Issue
+--------------------------------------------------------------------------------
+CATEGORY: Network / Remote Access
+
+PROBLEM:
+Employee cannot connect to the corporate VPN when working remotely.
+
+SOLUTION:
+1. Confirm you have a working internet connection before launching the VPN client.
+2. Open the VPN client (e.g. Cisco AnyConnect / GlobalProtect) and try again.
+3. Verify you are using the correct VPN server address and your credentials.
+4. Check if your VPN licence is still active — expired licences will silently fail.
+5. Temporarily disable your local firewall or antivirus to see if it is blocking
+   the VPN. Re-enable it after testing.
+6. Reinstall the VPN client if the above steps do not help.
+
+ESCALATION:
+If the VPN server itself is unreachable, escalate to the Network team — it may
+be a server outage or certificate expiry issue.
+
+--------------------------------------------------------------------------------
+FAQ 4 — Email Not Syncing
+--------------------------------------------------------------------------------
+CATEGORY: Email / Communication
+
+PROBLEM:
+Employee's email client (Outlook, Thunderbird, or mobile app) is not receiving
+new emails or is stuck synchronising.
+
+SOLUTION:
+1. Check your internet connection.
+2. Restart the email client completely.
+3. Check your mailbox storage quota — a full mailbox will stop new mail arriving.
+   In Outlook: File → Info → Mailbox Settings → Cleanup Tools.
+4. Remove and re-add your email account in the client settings.
+5. For Outlook specifically: run the Outlook Diagnostics tool
+   (Help → Diagnostics or use Microsoft Support and Recovery Assistant).
+6. On mobile: ensure Background App Refresh is enabled for the mail app.
+
+ESCALATION:
+If mail flow is broken for the whole team or email is bouncing, escalate to the
+Mail Server / Exchange admin team.
+
+--------------------------------------------------------------------------------
+FAQ 5 — Printer Not Responding
+--------------------------------------------------------------------------------
+CATEGORY: Hardware / Peripherals
+
+PROBLEM:
+Employee's print job is stuck in the queue or the printer is shown as offline.
+
+SOLUTION:
+1. Check that the printer is powered on and all cables are connected (or that it
+   is connected to the Wi-Fi network for wireless printers).
+2. Open the print queue and cancel all stuck jobs:
+   Windows: Control Panel → Devices & Printers → right-click printer → See what's printing.
+3. Restart the Windows Print Spooler service:
+   Press Win+R → type "services.msc" → find "Print Spooler" → right-click → Restart.
+4. Remove the printer and re-add it (Control Panel → Devices & Printers → Add a printer).
+5. Download and reinstall the latest driver from the manufacturer's website.
+
+ESCALATION:
+For shared network printers, contact the IT helpdesk. The print server or printer
+firmware may need attention.
+
+--------------------------------------------------------------------------------
+FAQ 6 — Software Installation Request
+--------------------------------------------------------------------------------
+CATEGORY: Software / Asset Management
+
+PROBLEM:
+Employee needs to install new software on their work device.
+
+SOLUTION:
+1. First, check the IT Self-Service Portal — approved software can be installed
+   directly from there without raising a ticket.
+2. If the software is not listed, submit a Software Request ticket with:
+   - Software name and version
+   - Business justification
+   - Vendor/download URL
+   - Whether a licence needs to be purchased
+3. Do NOT install software from personal accounts or external sources — this
+   violates company security policy.
+4. All software requests are reviewed within 2 business days.
+
+NOTE:
+Some categories (e.g. security tools, database clients) require line-manager and
+IT Security approval before installation.
+
+--------------------------------------------------------------------------------
+FAQ 7 — Account Locked Out
+--------------------------------------------------------------------------------
+CATEGORY: Account / Identity
+
+PROBLEM:
+Employee's account has been locked after too many failed login attempts and they
+cannot access their workstation or applications.
+
+SOLUTION:
+1. Wait 15 minutes — accounts automatically unlock after the lockout period.
+2. Use the IT Self-Service Portal unlock tool if you need immediate access.
+3. Contact the IT helpdesk to manually unlock the account after verifying identity.
+4. Once unlocked, reset your password immediately to avoid repeat lockouts.
+
+IMPORTANT:
+Repeated lockouts — especially outside business hours — may indicate a
+compromised credential or brute-force attempt. Always report this to the IT
+Security team so they can investigate.
+
+--------------------------------------------------------------------------------
+FAQ 8 — Slow Computer / Poor Performance
+--------------------------------------------------------------------------------
+CATEGORY: Hardware / Performance
+
+PROBLEM:
+Employee's computer is running slowly, freezing, or taking a long time to start up.
+
+SOLUTION:
+1. Restart the computer — this clears memory and terminates background processes.
+2. Check available disk space: keep at least 10–15% of disk space free.
+   - Windows: File Explorer → right-click C: → Properties.
+   - Run Disk Cleanup to remove temporary files.
+3. Close unnecessary applications and browser tabs.
+4. Check Task Manager (Ctrl+Shift+Esc) for processes using high CPU or RAM.
+5. Run a full malware / antivirus scan.
+6. Disable unnecessary startup programs:
+   Task Manager → Startup tab → disable high-impact items.
+
+ESCALATION:
+If the machine is older than 5 years or performance issues persist after the
+above steps, raise a hardware review ticket — a RAM upgrade or device refresh
+may be warranted.
+
+--------------------------------------------------------------------------------
+FAQ 9 — MFA / Two-Factor Authentication Not Working
+--------------------------------------------------------------------------------
+CATEGORY: Security / Identity
+
+PROBLEM:
+Employee's MFA authenticator app is generating codes that are rejected, or they
+have lost access to their MFA device.
+
+SOLUTION:
+1. Ensure the clock on your phone is set to automatic/sync — MFA codes are
+   time-sensitive and a clock drift of more than 30 seconds will cause failures.
+2. Try regenerating the code and entering it within 10 seconds.
+3. If using SMS-based OTP, check signal/network on your phone.
+4. If you have lost your MFA device, contact IT immediately to:
+   a. Verify your identity via an alternative method.
+   b. Revoke the old MFA device.
+   c. Register a new MFA device.
+
+SECURITY REMINDER:
+Never share your OTP or backup codes with anyone — including IT staff. Legitimate
+IT personnel will never ask for your one-time code.
+
+--------------------------------------------------------------------------------
+FAQ 10 — No Network Connectivity (Wired / General)
+--------------------------------------------------------------------------------
+CATEGORY: Network
+
+PROBLEM:
+Employee has no internet or network access, even with an ethernet cable plugged in,
+or after previously having a stable connection.
+
+SOLUTION:
+1. Check that the ethernet cable is firmly seated at both ends (PC and wall socket
+   or switch). Try a different cable if possible.
+2. Disable and re-enable the network adapter:
+   Settings → Network & Internet → Change adapter options → right-click → Disable,
+   then right-click → Enable.
+3. Release and renew IP address:
+   Open Command Prompt as Administrator:
+     ipconfig /release
+     ipconfig /flushdns
+     ipconfig /renew
+4. Test basic connectivity: ping 8.8.8.8
+   - If ping succeeds but websites fail, the issue may be DNS.
+   - If ping fails, the issue is likely at the network/router level.
+5. Restart your router or managed switch if you have access to it.
+
+ESCALATION:
+If the entire team or floor is affected, escalate to the Network Infrastructure
+team immediately — this may be a switch failure, ISP outage, or DHCP server issue.
+
+================================================================================
+  END OF KNOWLEDGE BASE — Phase 1
+  
+  Planned additions for future phases:
+  - Hardware request / device provisioning
+  - Remote desktop / screen sharing setup
+  - Cloud storage quota management
+  - Onboarding / new employee device setup
+  - Security incident reporting
+================================================================================

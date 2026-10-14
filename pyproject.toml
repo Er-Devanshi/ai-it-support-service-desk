@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+# Add the backend/ directory to sys.path so `from app.*` imports resolve in tests.
+pythonpath = ["backend"]
+testpaths = ["tests"]
+# Exclude the Phase 1 manual verification script (not a pytest test)
+collect_ignore = ["tests/verify_phase1.py"]

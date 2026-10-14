@@ -187,6 +187,57 @@ body {
 .tag-status-answered { background: #dcfce7; color: #15803d; }
 .tag-status-escalate { background: #fee2e2; color: #b91c1c; }
 .tag-status-unknown  { background: #f3f4f6; color: #6b7280; }
+.tag-status-pending_approval { background: #fef3c7; color: #b45309; }
+
+.tag-priority-p1 { background: #dc2626; color: #ffffff; }
+.tag-priority-p2 { background: #ea580c; color: #ffffff; }
+.tag-priority-p3 { background: #f59e0b; color: #ffffff; }
+.tag-priority-p4 { background: #64748b; color: #ffffff; }
+
+.citations-box {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: #f8fafc;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+.citations-box h5 {
+  font-size: 0.8rem;
+  color: var(--color-bot-text);
+  margin-bottom: 0.25rem;
+}
+.citation-item {
+  margin-bottom: 0.2rem;
+}
+
+.mode-badge {
+  background: rgba(255,255,255,0.25);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.sidebar-info-box {
+  margin-top: 1.25rem;
+  background: #f1f5f9;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-size: 0.8rem;
+}
+.sidebar-info-box h4 {
+  font-size: 0.8rem;
+  margin-bottom: 0.35rem;
+  color: var(--color-bot-text);
+}
+.sidebar-info-box p {
+  margin-bottom: 0.25rem;
+  color: #334155;
+}
 
 /* Typing indicator */
 .typing-indicator .message-bubble {
@@ -324,4 +375,181 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
   }
+}
+
+/* =========================================================
+   ServiceDesk-AI — Phase 2 additions
+   Login modal, auth pill, info panel
+   ========================================================= */
+
+/* ----- Login Modal ----- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal-overlay[hidden] { display: none; }
+
+.modal-box {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 2rem 2.25rem;
+  width: min(420px, 92vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.modal-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-muted);
+  margin-bottom: 1.25rem;
+}
+
+.modal-box form label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-bot-text);
+  margin-bottom: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.modal-box form input {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color .15s;
+}
+.modal-box form input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+.login-error {
+  background: #fee2e2; color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-hint {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  background: #f8fafc;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.65rem;
+  line-height: 1.5;
+}
+
+.modal-skip-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background .12s;
+}
+.modal-skip-btn:hover { background: var(--color-bg); }
+
+/* ----- Auth pill in header ----- */
+.auth-pill {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,255,255,.15);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.78rem;
+  color: #fff;
+}
+.auth-btn {
+  background: rgba(255,255,255,.25);
+  border: none;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  color: #fff;
+  cursor: pointer;
+}
+.auth-btn:hover { background: rgba(255,255,255,.4); }
+
+/* ----- Chat column (wraps chat + info panel) ----- */
+.chat-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ----- Info panel (ticket / approval / escalation) ----- */
+.info-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.85rem 1rem;
+}
+.info-panel[hidden] { display: none; }
+
+.info-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+}
+.info-item[hidden] { display: none; }
+
+.info-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+.info-item strong { font-size: 0.82rem; color: var(--color-bot-text); display: block; }
+
+.info-detail {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+  font-family: monospace;
+}
+
+/* Main grid — updated to use .chat-column */
+.main {
+  flex: 1;
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .main { grid-template-columns: 1fr; }
+  .sidebar { order: -1; }
+  .topic-list { flex-direction: row; flex-wrap: wrap; }
 }

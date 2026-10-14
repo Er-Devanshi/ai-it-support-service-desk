@@ -1,188 +1,169 @@
 # ServiceDesk-AI — Architecture Document
 
-> **Status:** Phase 1 — Foundation (Under Development)  
+> **Status:** Phase 2 — Autonomous Multi-Agent IT Operations  
 > **Last updated:** September 2026
 
 ---
 
 ## 1. Project Objective
 
-ServiceDesk-AI is an AI-powered IT support desk designed to help employees resolve common IT problems through a conversational interface. The system aims to reduce the load on human IT administrators by automatically handling routine queries, searching an organisational knowledge base, and escalating complex or sensitive issues to a human technician.
+ServiceDesk-AI is an AI-powered IT support desk designed to help employees resolve common IT problems through a conversational interface. It reduces the load on human IT administrators by:
+- Classifying issues and applying ITIL-compliant priority triage
+- Providing step-by-step troubleshooting guidance
+- Searching an organisational IT knowledge base (RAG)
+- Creating and tracking persistent support tickets
+- Enforcing human-in-the-loop approval for sensitive IT actions
+- Escalating security incidents and unresolved issues to human technicians
 
 ---
 
-## 2. Current Architecture (Phase 1)
-
-Phase 1 establishes a working end-to-end skeleton — a real HTTP request flows from the browser to the backend and a structured response is returned. No LLM or AI model is connected yet.
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User's Browser                          │
-│                                                                 │
-│   frontend/index.html                                           │
-│   frontend/css/style.css    ──── static files (no server)       │
-│   frontend/js/app.js                                            │
-│          │                                                      │
-│          │  HTTP  POST /api/chat                                │
-│          │  HTTP  GET  /api/health                              │
-└──────────┼──────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   FastAPI Backend (Python)                       │
-│                                                                 │
-│   app/main.py          — app entry point, CORS, router include  │
-│   app/routes/health.py — GET  /api/health                       │
-│   app/routes/chat.py   — POST /api/chat                         │
-│   app/models/chat.py   — Pydantic request/response models       │
-│   app/services/        — business logic                         │
-│     chat_service.py    — keyword-based response matching (stub) │
-│   app/utils/           — shared utilities                       │
-│     logger.py          — centralised logging                    │
-│                                                                 │
-│   [Phase 1 — no database, no LLM, no vector store]             │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Phase 1 request flow
-
-1. User types a message in the browser and clicks **Send**.
-2. `app.js` sends `POST /api/chat` with `{ "message": "..." }`.
-3. FastAPI validates the request with the `ChatRequest` Pydantic model.
-4. `chat_service.process_message()` matches keywords to known IT topics and returns a canned reply.
-5. The `ChatResponse` Pydantic model serialises the result to JSON.
-6. `app.js` renders the reply with a category tag and status tag in the chat window.
-
----
-
-## 3. Planned Architecture (Phase 2 and beyond)
-
-The diagram below shows the full intended system. Components marked **[future]** are not yet implemented.
+## 2. Current Architecture (Phase 2)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                            User's Browser / Client App                       │
-└──────────────────────────────────┬───────────────────────────────────────────┘
-                                   │ HTTPS
-                                   ▼
+│                  Browser — frontend/index.html                               │
+│  Login modal · Chat interface · Ticket/approval info panel · Mode badge      │
+│                         │ JWT Bearer token (sessionStorage)                  │
+│              HTTP   POST /api/chat   GET /api/health                         │
+│                         │  GET|POST /api/auth/* /api/tickets/*               │
+│                         │  GET|POST /api/approvals/* /api/actions/*          │
+└─────────────────────────┼────────────────────────────────────────────────────┘
+                          ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                          FastAPI Backend                                      │
+│                     FastAPI Backend (Python)                                  │
 │                                                                              │
-│  ┌───────────────┐    ┌──────────────────────────────────────────────────┐  │
-│  │  Auth Layer   │    │              Agent Orchestrator [future]          │  │
-│  │  JWT / OAuth  │───▶│  Manages conversation state, tool calls,         │  │
-│  │  [future]     │    │  multi-turn context, and escalation logic         │  │
-│  └───────────────┘    └────────────────┬─────────────────────────────────┘  │
-│                                        │                                     │
-│              ┌─────────────────────────┼──────────────────────┐             │
-│              ▼                         ▼                       ▼             │
-│  ┌───────────────────┐   ┌─────────────────────┐  ┌────────────────────┐   │
-│  │   LLM Service     │   │   RAG Service        │  │  Ticket Service    │   │
-│  │   OpenAI / local  │   │   ChromaDB / FAISS   │  │  Create / Update   │   │
-│  │   [future]        │   │   Embeddings [future]│  │  tickets [future]  │   │
-│  └───────────────────┘   └─────────────────────┘  └────────────────────┘   │
-│                                        │                                     │
-│                           ┌────────────▼────────────┐                       │
-│                           │   Knowledge Base         │                       │
-│                           │   data/knowledge_base/   │                       │
-│                           │   (plain text → Phase 1) │                       │
-│                           │   (vector DB → Phase 2+) │                       │
-│                           └─────────────────────────┘                       │
+│  app/main.py — app entry point, CORS, lifespan (DB init), 7 routers         │
+│  app/config.py — environment-based configuration                             │
+│                                                                              │
+│  Routers:                                                                    │
+│    /api/health   → health.py                                                 │
+│    /api/chat     → chat.py → chat_service.py → LangGraph workflow           │
+│    /api/auth/*   → auth.py → auth_service.py (JWT + bcrypt)                 │
+│    /api/tickets/*→ tickets.py → ticket_service.py                           │
+│    /api/approvals/* → approvals.py → approval_service.py                    │
+│    /api/actions/* → actions.py → action_registry.py                         │
+│    /api/audit    → audit.py → audit_service.py                              │
+│                                                                              │
+│  Database: SQLAlchemy 2.x + SQLite                                           │
+│    Tables: users, tickets, ticket_status_history,                            │
+│            approval_requests, audit_events, conversation_messages            │
+└──────────────────────────────────────────────────────────────────────────────┘
+                          ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    LangGraph Multi-Agent Workflow (9 nodes)                  │
+│                                                                              │
+│  START → intake → triage → [security_escalation | rag_retrieval]            │
+│       → action_decision → [action_execution | response_generation]          │
+│       → response_generation → ticket_creation → verification → END          │
+│                                                                              │
+│  Node responsibilities:                                                      │
+│  1. intake           — load conversation history, save user message          │
+│  2. triage           — ITIL category/priority, security detection            │
+│  3. security_escalation — P1 SecOps escalation (deterministic rule)         │
+│  4. rag_retrieval    — query knowledge base retriever                        │
+│  5. action_decision  — detect IT action intent (unlock, check, grant)       │
+│  6. action_execution — run low-risk action or create approval request        │
+│  7. response_generation — LLM + history + RAG context → reply               │
+│  8. ticket_creation  — persist ticket for explicit requests / escalations   │
+│  9. verification     — save assistant reply, mark terminal                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+                          ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         Supporting Services                                   │
+│                                                                              │
+│  LLM Providers (provider-independent):                                       │
+│    GeminiProvider  — Google Generative Language API (primary live provider)  │
+│    OpenAIProvider  — OpenAI Chat Completions API                             │
+│    OllamaProvider  — Local model server (llama3, mistral, gemma, etc.)      │
+│    MockLLMProvider — Offline demo/test mode, clearly labelled                │
+│    LLMFactory      — selects provider from LLM_PROVIDER env var             │
+│                                                                              │
+│  RAG Retrieval (plug-in contract):                                           │
+│    BaseRetriever interface  — abstract contract for any vector store         │
+│    SampleFAQRetriever       — keyword-based reference implementation         │
+│    register_custom_retriever() — hook for Sanskriti's ChromaDB pipeline      │
+│                                                                              │
+│  IT Action Registry (simulated, allowlist-enforced):                         │
+│    check_account_status   — LOW risk, no approval                           │
+│    check_service_health   — LOW risk, no approval                           │
+│    unlock_account         — MEDIUM risk, approval required                  │
+│    reset_password         — MEDIUM risk, approval required                  │
+│    grant_resource_access  — HIGH risk, approval required                    │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Main Components
+## 3. LLM Provider Configuration
 
-| Component | Location | Status |
+| Environment Variable | Default | Description |
 |---|---|---|
-| Frontend chat UI | `frontend/` | Phase 1 — working |
-| FastAPI application | `backend/app/main.py` | Phase 1 — working |
-| Health check endpoint | `backend/app/routes/health.py` | Phase 1 — working |
-| Chat endpoint | `backend/app/routes/chat.py` | Phase 1 — working (stub) |
-| Request/response models | `backend/app/models/chat.py` | Phase 1 — working |
-| Chat service (logic) | `backend/app/services/chat_service.py` | Phase 1 — keyword rules only |
-| Logger utility | `backend/app/utils/logger.py` | Phase 1 — working |
-| IT knowledge base | `data/knowledge_base/sample_it_faq.txt` | Phase 1 — plain text |
-| LLM integration | — | **Phase 2 — not started** |
-| RAG / vector store | — | **Phase 2 — not started** |
-| Conversation memory | — | **Phase 2 — not started** |
-| Ticket management | — | **Phase 3 — not started** |
-| Authentication / JWT | — | **Phase 3 — not started** |
-| Tool calling / IT actions | — | **Phase 4 — not started** |
-| Human escalation workflow | — | **Phase 4 — not started** |
+| `LLM_PROVIDER` | `gemini` | Active provider: `gemini`, `openai`, `ollama`, `mock` |
+| `DEMO_MODE` | `false` | Force mock mode regardless of API keys |
+| `GEMINI_API_KEY` | _(empty)_ | Falls back to mock if unset |
+| `GEMINI_MODEL` | `gemini-1.5-flash` | Model name |
+
+When no API key is configured or `DEMO_MODE=true`, the system transparently falls back to `MockLLMProvider` and labels all responses accordingly. A mock response is **never** labelled as a live Gemini response.
 
 ---
 
-## 5. Future AI / RAG Components
+## 4. RAG Integration Boundary (Sanskriti Agarwal)
 
-### 5.1 LLM Integration (Phase 2)
-`chat_service.py` will be updated to call an LLM API (e.g. OpenAI `gpt-4o`, or a locally hosted model via Ollama). The keyword-matching stub will be replaced with a proper prompt-engineering approach.
+The retrieval interface is in `backend/app/services/rag/retrieval_interface.py`.
 
-### 5.2 Retrieval-Augmented Generation — RAG (Phase 2)
-The plain-text knowledge base will be:
-1. Chunked into overlapping passages.
-2. Converted to embeddings using a sentence-transformer model.
-3. Stored in a vector database (ChromaDB or FAISS).
-4. Queried at chat time — the top-k relevant passages will be injected into the LLM prompt as context.
+```python
+# Register your vector store retriever at startup:
+from app.services.rag.retrieval_interface import register_custom_retriever
 
-This allows the system to give accurate, source-grounded answers without relying solely on the LLM's parametric knowledge.
+class MyChromaDBRetriever(BaseRetriever):
+    def retrieve(self, query: str, context=None, top_k: int = 3) -> RetrievalResult:
+        # Your ChromaDB/FAISS implementation here
+        ...
 
-### 5.3 Conversation Memory (Phase 2)
-Multi-turn context will be maintained per session using an in-memory store (Phase 2) and later a persistent database (Phase 3). This allows follow-up questions like "Can you explain step 3?" to work correctly.
+register_custom_retriever(MyChromaDBRetriever())
+```
 
-### 5.4 Agent Orchestration (Phase 4)
-A LangChain or LlamaIndex agent loop will be introduced. The agent will decide when to:
-- Answer directly from the LLM.
-- Retrieve documents from the knowledge base (RAG tool).
-- Create a support ticket (ticket tool).
-- Perform an authorised IT action (e.g. unlock account via LDAP).
-- Escalate to a human technician.
+Call `register_custom_retriever()` in `app/main.py`'s lifespan handler.
+
+Set `RAG_ENABLED=false` in `.env` to disable retrieval entirely.
+
+The workflow will always call `get_retriever()` — if no custom retriever is registered and `RAG_ENABLED=true`, it falls back to `SampleFAQRetriever` (keyword-based FAQ search over `data/knowledge_base/sample_it_faq.txt`).
 
 ---
 
-## 6. Security Considerations
+## 5. Security Considerations
 
-| Concern | Phase 1 status | Planned mitigation |
+| Concern | Current status |
+|---|---|
+| API keys / credentials | Backend `.env` only — never in source code or frontend |
+| JWT authentication | PyJWT + bcrypt — implemented and tested |
+| RBAC | Employee / Support Agent / Admin roles enforced on all protected routes |
+| Input validation | Pydantic models with length limits |
+| CORS | Open `*` in development — restrict to specific origins in production |
+| HTTPS | Not configured — add TLS termination via reverse proxy for production |
+| LLM prompt injection | User inputs treated as untrusted; deterministic rules bypass LLM for security decisions |
+| IT action authorization | Explicit allowlist; approval workflow for MEDIUM/HIGH risk; no shell execution |
+| Sensitive information in logs | API keys and passwords never logged |
+| SQLite database | Excluded from Git via `.gitignore` |
+
+---
+
+## 6. Development Phases
+
+| Phase | Status | Description |
 |---|---|---|
-| API keys / credentials | Not present | `.env` + secret manager (Phase 2+) |
-| Authentication | Not implemented | JWT tokens (Phase 3) |
-| Authorisation | Not implemented | Role-based access control (Phase 3) |
-| Input validation | Pydantic models | Sanitisation + max-length checks (ongoing) |
-| CORS | Open (`*`) in Phase 1 | Restrict to known origins (Phase 2) |
-| HTTPS | Not configured | TLS termination via reverse proxy (Phase 3) |
-| LLM prompt injection | N/A — no LLM yet | Input sanitisation + guardrails (Phase 2) |
-| Sensitive IT actions | Not implemented | Approval workflow + audit log (Phase 4) |
+| Phase 1 | ✅ Complete | FastAPI backend, frontend, health/chat endpoints, sample knowledge base |
+| Phase 2 | ✅ Active | LangGraph workflow, JWT auth, tickets, approvals, audit log, conversation history, LLM providers |
+| Phase 3 | ⏳ Planned | ChromaDB/FAISS RAG pipeline (Sanskriti), PostgreSQL migration, Docker |
+| Phase 4 | ⏳ Planned | CI/CD, HTTPS, rate limiting, production monitoring |
 
 ---
 
-## 7. Planned Development Phases
+## 7. Known Limitations
 
-### Phase 1 — Foundation (current)
-- Project structure, FastAPI backend, basic frontend, health and chat endpoints, sample knowledge base, documentation.
-
-### Phase 2 — AI Core
-- LLM integration (OpenAI API or local model).
-- RAG pipeline: chunk knowledge base → embeddings → ChromaDB.
-- Multi-turn conversation memory.
-- Improved prompt engineering.
-
-### Phase 3 — Ticketing and Persistence
-- SQLite / PostgreSQL database.
-- Ticket creation, status tracking, and assignment.
-- User authentication (JWT).
-- Conversation history persistence.
-
-### Phase 4 — Agents and Automation
-- LangChain / LlamaIndex agent loop.
-- Tool calling: account unlock, password reset (with approval).
-- Human escalation workflow with email/Slack notification.
-- Audit logging for all automated actions.
-- RBAC — role-based access control.
-
-### Phase 5 — Production Hardening
-- Containerisation (Docker, docker-compose).
-- CI/CD pipeline (GitHub Actions).
-- HTTPS, rate limiting, monitoring, and alerting.
-- Load testing and performance optimisation.
+- IT actions are fully **simulated** against a synthetic in-memory directory. No real enterprise systems (AD, LDAP, Exchange) are connected.
+- Conversation memory has no summarisation — capped at 6 turns.
+- JWT stored in `sessionStorage` — cleared on browser tab close.
+- No ticket assignment workflow in the current UI.
+- Vector database RAG pipeline pending (Sanskriti Agarwal).
+- Not production-ready — no HTTPS, containerisation, or rate limiting.

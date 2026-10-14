@@ -74,3 +74,9 @@ faiss_index/
 
 # ----- Jupyter notebooks checkpoints -----
 .ipynb_checkpoints/
+
+# ----- Auto-generated project structure files -----
+project_structure.txt
+
+# ----- Kiro IDE files -----
+.kiro/

@@ -3,20 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ServiceDesk-AI — IT Support</title>
+  <title>ServiceDesk-AI — Autonomous IT Operations</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+
+  <!-- ===== Login Modal ===== -->
+  <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Login">
+    <div class="modal-box">
+      <h2 class="modal-title">🖥️ ServiceDesk-AI</h2>
+      <p class="modal-subtitle">Sign in to access the IT Support Desk</p>
+      <div id="loginError" class="login-error" hidden></div>
+      <form id="loginForm" autocomplete="off">
+        <label for="loginUsername">Username</label>
+        <input type="text" id="loginUsername" placeholder="e.g. employee" required />
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <button type="submit" class="send-btn" style="width:100%;margin-top:0.5rem;" id="loginBtn">Sign In</button>
+      </form>
+      <p class="modal-hint">
+        <strong>Demo accounts:</strong> employee / employee123 &nbsp;|&nbsp;
+        support_agent / agent123 &nbsp;|&nbsp; admin / admin123
+      </p>
+      <button class="modal-skip-btn" id="skipLoginBtn">Continue without login (anonymous)</button>
+    </div>
+  </div>
 
   <!-- ===== Header ===== -->
   <header class="header">
     <div class="header-inner">
       <span class="logo">🖥️ ServiceDesk-AI</span>
-      <span class="tagline">AI-Powered IT Support Desk</span>
-      <!-- Status indicator — updated by app.js once the backend responds -->
+      <span class="tagline">Autonomous Multi-Agent Assistant for Enterprise IT</span>
+      <span class="mode-badge" id="modeBadge">Mode: —</span>
       <span class="status-badge" id="statusBadge">
         <span class="status-dot" id="statusDot"></span>
         <span id="statusText">Connecting…</span>
+      </span>
+      <!-- Auth pill -->
+      <span class="auth-pill" id="authPill">
+        <span id="authUsername">Not signed in</span>
+        <button class="auth-btn" id="logoutBtn" hidden>Sign out</button>
       </span>
     </div>
   </header>
@@ -24,59 +50,96 @@
   <!-- ===== Main layout ===== -->
   <main class="main">
 
-    <!-- Chat window -->
-    <section class="chat-container" aria-label="Chat conversation">
+    <!-- Chat + ticket panel -->
+    <div class="chat-column">
 
-      <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
-        <!-- Welcome message injected by app.js on load -->
-      </div>
+      <!-- Chat window -->
+      <section class="chat-container" aria-label="Chat conversation">
+        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
+        <form class="chat-input-row" id="chatForm" autocomplete="off">
+          <label for="messageInput" class="sr-only">Type your IT issue</label>
+          <input
+            type="text"
+            id="messageInput"
+            class="chat-input"
+            placeholder="Describe your IT issue… (e.g. My Wi-Fi is not working)"
+            maxlength="2000"
+            required
+            aria-label="Message input"
+          />
+          <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">Send</button>
+        </form>
+      </section>
 
-      <!-- Input row -->
-      <form class="chat-input-row" id="chatForm" autocomplete="off">
-        <label for="messageInput" class="sr-only">Type your IT issue</label>
-        <input
-          type="text"
-          id="messageInput"
-          class="chat-input"
-          placeholder="Describe your IT issue… (e.g. My Wi-Fi is not working)"
-          maxlength="1000"
-          required
-          aria-label="Message input"
-        />
-        <button type="submit" class="send-btn" id="sendBtn" aria-label="Send message">
-          Send
-        </button>
-      </form>
+      <!-- Ticket / Approval info panel (shown only when relevant) -->
+      <section class="info-panel" id="infoPanel" hidden aria-label="Ticket and approval details">
+        <div class="info-panel-inner">
+          <div class="info-item" id="ticketInfo" hidden>
+            <span class="info-icon">🎫</span>
+            <div>
+              <strong>Ticket Created</strong>
+              <div id="ticketDetails" class="info-detail"></div>
+            </div>
+          </div>
+          <div class="info-item" id="approvalInfo" hidden>
+            <span class="info-icon">⚠️</span>
+            <div>
+              <strong>Approval Request Pending</strong>
+              <div id="approvalDetails" class="info-detail"></div>
+            </div>
+          </div>
+          <div class="info-item" id="escalationInfo" hidden>
+            <span class="info-icon">🚨</span>
+            <div>
+              <strong>Escalated to IT Operations</strong>
+              <div id="escalationDetails" class="info-detail"></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    </section>
+    </div>
 
-    <!-- Sidebar — quick reference -->
+    <!-- Sidebar -->
     <aside class="sidebar" aria-label="Quick help topics">
-      <h2 class="sidebar-title">Quick Topics</h2>
+      <h2 class="sidebar-title">Common IT Inquiries</h2>
       <ul class="topic-list" id="topicList">
         <li data-msg="My Wi-Fi is not working">Wi-Fi / Internet</li>
         <li data-msg="I need to reset my password">Password Reset</li>
-        <li data-msg="VPN is not connecting">VPN Issue</li>
+        <li data-msg="VPN is not connecting">VPN Connection Issue</li>
         <li data-msg="My email is not syncing">Email Sync</li>
         <li data-msg="The printer is not responding">Printer Problem</li>
-        <li data-msg="I need to install software">Software Request</li>
-        <li data-msg="My account is locked">Account Locked</li>
-        <li data-msg="My computer is very slow">Slow Computer</li>
-        <li data-msg="MFA authenticator is not working">MFA Issue</li>
-        <li data-msg="I have no internet connectivity">Network Connectivity</li>
+        <li data-msg="My computer is very slow">Slow Performance</li>
+        <li data-msg="MFA authenticator is not working">MFA / 2FA Authenticator</li>
+        <li data-msg="I received a suspicious phishing email claiming to be IT">🚨 Phishing / Security Alert</li>
       </ul>
-      <p class="sidebar-note">
-        ⚠️ <strong>Phase 1</strong> — AI/LLM not yet connected.<br />
-        Responses are rule-based placeholders.
-      </p>
+
+      <h2 class="sidebar-title" style="margin-top:1.25rem;">Simulated IT Workflows</h2>
+      <ul class="topic-list" id="actionList">
+        <li data-msg="Please create a ticket for my ongoing network issue">🎫 Create Support Ticket</li>
+        <li data-msg="Check account status for employee">🔍 Check Account Status</li>
+        <li data-msg="Is VPN service down?">🌐 Check VPN Service Health</li>
+        <li data-msg="Please unlock account for user john.doe">🔒 Request Account Unlock</li>
+        <li data-msg="Grant access to Restricted-DB for employee">🛡️ Request Resource Access</li>
+      </ul>
+
+      <div class="sidebar-info-box">
+        <h4>Demo Accounts:</h4>
+        <p>• <strong>Employee:</strong> employee / employee123</p>
+        <p>• <strong>Agent:</strong> support_agent / agent123</p>
+        <p>• <strong>Admin:</strong> admin / admin123</p>
+        <p style="margin-top:0.5rem;font-size:0.72rem;color:#64748b;">
+          API docs: <a href="http://127.0.0.1:8000/docs" target="_blank">127.0.0.1:8000/docs</a>
+        </p>
+      </div>
     </aside>
 
   </main>
 
   <!-- ===== Footer ===== -->
   <footer class="footer">
-    ServiceDesk-AI &nbsp;·&nbsp; Phase 1 — Foundation &nbsp;·&nbsp;
-    College Mini-Project &nbsp;·&nbsp; Under Development
+    ServiceDesk-AI &nbsp;·&nbsp; Autonomous Multi-Agent Assistant &nbsp;·&nbsp;
+    College Mini-Project &nbsp;·&nbsp; LangGraph + Gemini / Provider-Independent
   </footer>
 
   <script src="js/app.js"></script>

@@ -34,17 +34,29 @@ class TriageResult(BaseModel):
 
 
 # Deterministic critical security indicators
+# These are matched with word-boundary regex BEFORE the keyword fallback, ensuring
+# genuine incidents (ransomware, phishing, credential compromise) always escalate to P1.
 SECURITY_CRITICAL_KEYWORDS = [
     "compromised", "hacked", "ransomware", "malware", "phishing",
     "data leak", "data breach", "unauthorized access", "suspicious email",
-    "wire transfer", "keylogger", "trojan", "bitcoin ransom"
+    "wire transfer", "keylogger", "trojan", "bitcoin ransom",
+    "account compromised", "credentials stolen", "identity theft",
 ]
 
 # Deterministic IT category keyword mappings (keeps Phase 1 tests 100% compliant)
+#
+# IMPORTANT SAFETY RULE for the "security" bucket:
+#   - Do NOT include the bare word "security" here. Sentences like
+#     "Is there a security issue with my Wi-Fi?" would otherwise match,
+#     triggering a false P1 escalation to SecOps.
+#   - Do NOT include "compromised", "hacked", or "phishing" here;
+#     those are caught by SECURITY_CRITICAL_KEYWORDS above, which fires first.
+#   - Only include MFA/authenticator keywords, which represent an IAM
+#     access problem (P2, no escalation), not a critical security incident.
 CATEGORY_KEYWORDS = {
     "network": ["wi-fi", "wifi", "wireless", "internet", "network", "router", "vpn", "connectivity", "ethernet"],
     "account": ["password", "reset", "forgot", "credentials", "locked", "account locked", "unable to login", "login failed"],
-    "security": ["mfa", "two-factor", "2fa", "authenticator", "otp", "one-time", "security", "compromised", "hacked", "phishing"],
+    "security": ["mfa", "two-factor", "2fa", "authenticator", "otp", "one-time password"],
     "hardware": ["printer", "print", "printing", "monitor", "keyboard", "mouse", "laptop screen", "battery"],
     "software": ["install", "software", "application", "app", "program", "license"],
     "performance": ["slow", "performance", "lagging", "freezing", "hanging", "high cpu"],
@@ -95,10 +107,12 @@ class TicketTriageService:
     def __init__(self, llm_provider: Optional[BaseLLMProvider] = None):
         self.llm_provider = llm_provider
 
-    def triage_message(self, message: str) -> TriageResult:
+    def triage_message(self, message: str, context: Optional[str] = None) -> TriageResult:
         """
         Analyze a support message and return a validated TriageResult.
-        Enforces deterministic rules on security and critical indicators.
+        Enforces deterministic rules on security and critical indicators,
+        incorporates conversation context for multi-turn disambiguation,
+        and ensures high-priority P1 incidents trigger escalation.
         """
         lower = message.lower()
 
@@ -131,7 +145,9 @@ class TicketTriageService:
                     "missing_information (list), clarification_needed (bool), and escalation_required (bool)."
                 )
                 user_prompt = f"IT Support Message:\n\"\"\"{message}\"\"\""
-                
+                if context:
+                    user_prompt = f"Previous Conversation Context:\n{context}\n\nCurrent IT Support Message:\n\"\"\"{message}\"\"\""
+
                 llm_triage = self.llm_provider.generate_structured(
                     prompt=user_prompt,
                     schema=TriageResult,
@@ -139,6 +155,10 @@ class TicketTriageService:
                 )
                 # Recalculate priority deterministically using impact and urgency
                 llm_triage.priority = calculate_priority(llm_triage.impact, llm_triage.urgency)
+                if llm_triage.priority == TicketPriority.P1:
+                    llm_triage.escalation_required = True
+                    if not llm_triage.escalation_reason:
+                        llm_triage.escalation_reason = "Critical P1 incident requires immediate escalation"
                 return llm_triage
             except Exception as e:
                 logger.warning(f"LLM triage failed, falling back to deterministic triage: {e}")
@@ -150,10 +170,21 @@ class TicketTriageService:
                 detected_category = cat
                 break
 
+        # Fallback to context keywords if message alone is uncategorized
+        if detected_category == "unknown" and context:
+            lower_context = context.lower()
+            for cat, keywords in CATEGORY_KEYWORDS.items():
+                if any(re.search(r"\b" + re.escape(kw) + r"\b", lower_context) for kw in keywords):
+                    detected_category = cat
+                    break
+
         impact = "Medium"
         urgency = "Medium"
         if detected_category == "security":
-            impact = "High"
+            # MFA/authenticator issues are IAM access problems, not critical incidents.
+            # Genuine security incidents (phishing, ransomware, compromise) are caught by
+            # SECURITY_CRITICAL_KEYWORDS above and never reach this block.
+            impact = "Medium"
             urgency = "High"
         elif detected_category in ("account", "network"):
             impact = "Medium"
@@ -165,8 +196,14 @@ class TicketTriageService:
         priority = calculate_priority(impact, urgency)
         suggested_group = ASSIGNMENT_GROUPS.get(detected_category, "End User Support")
 
-        escalate = (detected_category == "unknown")
+        escalate = (detected_category == "unknown" or priority == TicketPriority.P1)
         clarify = len(message.split()) < 3 and detected_category == "unknown"
+
+        escalation_reason = None
+        if priority == TicketPriority.P1:
+            escalation_reason = "Critical P1 incident requires immediate escalation"
+        elif detected_category == "unknown":
+            escalation_reason = "Uncategorized or ambiguous issue requiring human technician review"
 
         return TriageResult(
             category=detected_category,
@@ -180,5 +217,5 @@ class TicketTriageService:
             missing_information=["More specific description"] if clarify else [],
             clarification_needed=clarify,
             escalation_required=escalate,
-            escalation_reason="Uncategorized or ambiguous issue requiring human technician review" if escalate else None,
+            escalation_reason=escalation_reason,
         )

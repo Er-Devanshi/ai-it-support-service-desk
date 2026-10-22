@@ -19,6 +19,7 @@ import re
 
 from langgraph.graph import StateGraph, START, END
 
+from app.config import settings
 from app.services.workflow.state import ServiceDeskState
 from app.services.triage_service import TicketTriageService, TriageResult
 from app.services.rag.retrieval_interface import get_retriever
@@ -28,7 +29,7 @@ from app.services.actions.action_registry import (
     ACTION_REGISTRY,
 )
 from app.services.approval_service import create_approval_request
-from app.services.ticket_service import create_ticket
+from app.services.ticket_service import create_ticket, escalate_ticket
 from app.services.conversation_service import (
     get_history,
     save_message,
@@ -38,7 +39,7 @@ from app.models.ticket_schemas import TicketCreate
 from app.services.llm.base import BaseLLMProvider
 from app.services.llm.factory import get_llm_provider
 from app.db.session import SessionLocal
-from app.models.orm import User
+from app.models.orm import User, Ticket
 from app.utils.logger import logger
 
 
@@ -220,6 +221,8 @@ def intake_node(state: ServiceDeskState) -> Dict[str, Any]:
     logger.debug(f"[Workflow Intake] Processing conversation {state.get('conversation_id')}")
     iterations = state.get("iteration_count", 0) + 1
 
+    existing_ticket_id = state.get("ticket_created_id")
+
     # Persist the incoming user message for multi-turn memory
     db = SessionLocal()
     try:
@@ -232,6 +235,19 @@ def intake_node(state: ServiceDeskState) -> Dict[str, Any]:
         )
         history_rows = get_history(db, state["conversation_id"])
         history_text = format_history_for_llm(history_rows[:-1])  # exclude the message just saved
+
+        # If ticket was not passed in state, check if conversation already has an active ticket
+        if not existing_ticket_id:
+            existing_ticket = db.query(Ticket).filter(Ticket.conversation_id == state["conversation_id"]).first()
+            if existing_ticket:
+                existing_ticket_id = existing_ticket.id
+            else:
+                # Check if user mentioned an existing ticket ID in their message
+                tkt_match = re.search(r"\b(TKT-[A-Fa-f0-9]{6})\b", state.get("message", ""))
+                if tkt_match:
+                    ref_tkt = db.query(Ticket).filter(Ticket.id == tkt_match.group(1).upper()).first()
+                    if ref_tkt:
+                        existing_ticket_id = ref_tkt.id
     except Exception as e:
         logger.warning(f"[Intake] Conversation history operation failed: {e}")
         history_text = ""
@@ -242,15 +258,17 @@ def intake_node(state: ServiceDeskState) -> Dict[str, Any]:
         "iteration_count": iterations,
         "is_terminal": iterations > 5,
         "conversation_history": history_text,
+        "ticket_created_id": existing_ticket_id,
     }
 
 
 def triage_node(state: ServiceDeskState) -> Dict[str, Any]:
-    """Triage node: runs category classification, priority calculation, and security scan."""
+    """Triage node: runs category classification, priority calculation, and security scan with conversation context."""
     message = state.get("message", "")
+    context = state.get("conversation_history")
     llm = get_llm_provider(allow_fallback=True)
     triage_service = TicketTriageService(llm_provider=llm)
-    triage_result = triage_service.triage_message(message)
+    triage_result = triage_service.triage_message(message, context=context)
 
     is_sec = (triage_result.category == "security" and triage_result.escalation_required) or (
         "incident_response" in str(triage_result.subcategory)
@@ -291,20 +309,24 @@ def security_escalation_node(state: ServiceDeskState) -> Dict[str, Any]:
 
 
 def rag_retrieval_node(state: ServiceDeskState) -> Dict[str, Any]:
-    """RAG node: queries Sanskriti's retrieval interface."""
+    """RAG node: queries retrieval interface, passing conversation context."""
     message = state.get("message", "")
+    context = state.get("conversation_history")
     retriever = get_retriever()
-    res = retriever.retrieve(query=message, top_k=2)
+    res = retriever.retrieve(query=message, context=context, top_k=settings.RAG_TOP_K)
 
     retrieved = []
     citations = []
     if res.is_available and res.documents:
         for doc in res.documents:
             retrieved.append(doc.model_dump())
+            snippet = doc.content[:250].strip()
+            if len(doc.content) > 250:
+                snippet += "..."
             citations.append({
                 "source": doc.source,
                 "title": doc.title,
-                "snippet": doc.content[:200] + "..." if len(doc.content) > 200 else doc.content,
+                "snippet": snippet,
                 "relevance_score": doc.relevance_score,
             })
 
@@ -371,6 +393,7 @@ def action_execution_node(state: ServiceDeskState) -> Dict[str, Any]:
                 action_params=params,
                 reason=f"User requested {action_name} through conversational IT assistant.",
                 requester=user,
+                ticket_id=state.get("ticket_created_id"),
                 conversation_id=state.get("conversation_id"),
                 risk_level=action_def.risk_level,
             )
@@ -470,8 +493,10 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     system_prompt = (
         "You are ServiceDesk-AI, an enterprise IT support assistant. "
         "Provide helpful, clear, step-by-step troubleshooting instructions. "
-        "Do not invent facts or claim to have fixed user systems unless verified. "
-        "Ground your advice in the provided IT knowledge context if available."
+        "Do not invent facts, citations, or claim to have fixed user systems unless verified. "
+        "Ground your advice strictly in the provided IT Reference Knowledge when available. "
+        "If the Reference Knowledge does not contain relevant information to solve the user's issue, "
+        "clearly communicate that limitation and suggest opening a support ticket or escalating to IT operations."
     )
     user_prompt = ""
     if history_text:
@@ -565,8 +590,32 @@ def ticket_creation_node(state: ServiceDeskState) -> Dict[str, Any]:
             conversation_id=state.get("conversation_id"),
         )
         ticket = create_ticket(db, ticket_in, creator=user)
-        logger.info(f"[Ticket Creation] Created ticket {ticket.id} for conversation {state.get('conversation_id')}")
-        return {"ticket_created_id": ticket.id}
+
+        # If escalation is required or security incident, transition newly created ticket to ESCALATED
+        if escalation_needed or is_security:
+            target_grp = triage.get("suggested_group") or ("Security Operations" if is_security else "Tier-2 Operations")
+            esc_reason = state.get("escalation_reason") or ("Security incident detected" if is_security else "Automated escalation for technician triage")
+            ticket = escalate_ticket(
+                db=db,
+                ticket_id=ticket.id,
+                reason=esc_reason,
+                target_group=target_grp,
+                user=user,
+            )
+
+        logger.info(f"[Ticket Creation] Created ticket {ticket.id} (Status: {ticket.status.value}) for conversation {state.get('conversation_id')}")
+
+        # Update final reply with the specific ticket ID
+        result_update: Dict[str, Any] = {"ticket_created_id": ticket.id}
+        final_reply = state.get("final_reply", "")
+        if "A support ticket is being created for this issue." in final_reply:
+            result_update["final_reply"] = final_reply.replace(
+                "A support ticket is being created for this issue.",
+                f"Support ticket #{ticket.id} has been created for this issue.",
+            )
+        elif explicit_request and final_reply and ticket.id not in final_reply:
+            result_update["final_reply"] = final_reply + f"\n\n🎫 Support ticket #{ticket.id} has been created for this issue."
+        return result_update
     except Exception as e:
         logger.error(f"[Ticket Creation] Failed: {e}")
         return {}

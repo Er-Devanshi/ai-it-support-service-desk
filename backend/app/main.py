@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.init_db import init_database
-from app.routes import health, chat, auth, tickets, approvals, actions, audit
+from app.routes import health, chat, auth, tickets, approvals, actions, audit, rag
 from app.utils.logger import logger
 
 
@@ -57,3 +57,28 @@ app.include_router(tickets.router, prefix="/api")
 app.include_router(approvals.router, prefix="/api")
 app.include_router(actions.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
+app.include_router(rag.router, prefix="/api")
+
+# ---------------------------------------------------------------------------
+# Static Frontend Serving
+# ---------------------------------------------------------------------------
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+if frontend_dir.exists():
+    css_dir = frontend_dir / "css"
+    js_dir = frontend_dir / "js"
+    if css_dir.exists():
+        app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
+    if js_dir.exists():
+        app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
+
+    @app.get("/", tags=["Frontend"])
+    def serve_frontend():
+        """Serve the ServiceDesk-AI dashboard interface."""
+        index_file = frontend_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        return {"service": "ServiceDesk-AI", "api_docs": "/docs"}

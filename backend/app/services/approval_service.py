@@ -147,7 +147,7 @@ def process_approval_decision(
             actor=deciding_user,
             target_type="approval_request",
             target_id=approval_id,
-            details={"action_executed": action_result.dict() if action_result else None},
+            details={"action_executed": action_result.model_dump() if action_result else None},
         )
     else:
         log_audit_event(

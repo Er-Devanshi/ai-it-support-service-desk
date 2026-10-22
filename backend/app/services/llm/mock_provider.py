@@ -98,8 +98,18 @@ class MockLLMProvider(BaseLLMProvider):
         def _has(keywords: list) -> bool:
             return any(re.search(r"\b" + re.escape(kw) + r"\b", prompt) for kw in keywords)
 
-        # 1. Critical security incident check (prefix/stem matches are intentional here)
-        if any(kw in prompt for kw in ("compromis", "hack", "phish", "malware", "ransom", "breach")):
+        # 1. Critical security incident check
+        # Uses word-boundary matching for most terms; stem matching only for distinctive
+        # multi-character stems that cannot appear in innocent IT vocabulary.
+        _security_stems = ("ransomware", "malware", "keylogger", "trojan", "phishing")
+        _security_exact = ("hacked", "compromised", "data breach", "data leak",
+                           "unauthorized access", "suspicious email", "wire transfer",
+                           "bitcoin ransom", "credentials stolen", "identity theft")
+        is_security_incident = (
+            any(re.search(r"\b" + re.escape(kw) + r"\b", prompt) for kw in _security_exact)
+            or any(kw in prompt for kw in _security_stems)
+        )
+        if is_security_incident:
             return json.dumps({
                 "category": "security",
                 "subcategory": "incident_response",
@@ -149,7 +159,7 @@ class MockLLMProvider(BaseLLMProvider):
                 "escalation_reason": None
             })
 
-        # 4. MFA / 2FA (whole-word)
+        # 4. MFA / 2FA (whole-word) — IAM access issue, not a critical incident
         elif _has(["mfa", "2fa", "two-factor", "authenticator", "otp"]):
             return json.dumps({
                 "category": "security",

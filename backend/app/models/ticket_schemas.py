@@ -4,7 +4,7 @@ Pydantic schemas for Tickets, Ticket Status, Approvals, and Audit Events.
 
 from datetime import datetime
 from typing import Optional, List, Any, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from app.models.orm import TicketPriority, TicketStatus, ApprovalStatus, RiskLevel
 
 
@@ -52,6 +52,14 @@ class TicketEscalateRequest(BaseModel):
     target_group: Optional[str] = "Tier-2 Operations"
 
 
+class TicketCloseRequest(BaseModel):
+    notes: Optional[str] = None
+
+
+class TicketReopenRequest(BaseModel):
+    notes: Optional[str] = None
+
+
 class TicketStatusHistoryOut(BaseModel):
     id: int
     ticket_id: str
@@ -61,8 +69,7 @@ class TicketStatusHistoryOut(BaseModel):
     notes: Optional[str]
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TicketOut(BaseModel):
@@ -80,11 +87,12 @@ class TicketOut(BaseModel):
     assignee_id: Optional[int]
     conversation_id: Optional[str]
     resolution_notes: Optional[str]
+    is_escalated: bool = False
+    escalation_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TicketDetailOut(TicketOut):
@@ -122,8 +130,7 @@ class ApprovalRequestOut(BaseModel):
     created_at: datetime
     decided_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Audit Schemas ---
@@ -139,5 +146,4 @@ class AuditEventOut(BaseModel):
     ip_address: Optional[str]
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

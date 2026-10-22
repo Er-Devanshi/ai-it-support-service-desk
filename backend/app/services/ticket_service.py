@@ -26,7 +26,7 @@ from app.utils.logger import logger
 VALID_TRANSITIONS: Dict[TicketStatus, List[TicketStatus]] = {
     TicketStatus.OPEN: [TicketStatus.IN_PROGRESS, TicketStatus.ESCALATED, TicketStatus.CLOSED],
     TicketStatus.IN_PROGRESS: [TicketStatus.PENDING_APPROVAL, TicketStatus.RESOLVED, TicketStatus.ESCALATED, TicketStatus.CLOSED],
-    TicketStatus.PENDING_APPROVAL: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.ESCALATED],
+    TicketStatus.PENDING_APPROVAL: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.ESCALATED, TicketStatus.CLOSED],
     TicketStatus.RESOLVED: [TicketStatus.CLOSED, TicketStatus.IN_PROGRESS],  # In-progress means reopened
     TicketStatus.ESCALATED: [TicketStatus.IN_PROGRESS, TicketStatus.RESOLVED, TicketStatus.CLOSED],
     TicketStatus.CLOSED: [TicketStatus.IN_PROGRESS],  # Reopening closed ticket
@@ -97,14 +97,43 @@ def get_ticket(db: Session, ticket_id: str, user: Optional[User] = None) -> Tick
     return ticket
 
 
-def list_tickets(db: Session, user: Optional[User] = None, skip: int = 0, limit: int = 50) -> List[Ticket]:
-    """List tickets authorized for the calling user."""
+def list_tickets(
+    db: Session,
+    user: Optional[User] = None,
+    status_filter: Optional[TicketStatus] = None,
+    priority_filter: Optional[TicketPriority] = None,
+    category_filter: Optional[str] = None,
+    needing_escalation: Optional[bool] = None,
+    skip: int = 0,
+    limit: int = 50,
+) -> List[Ticket]:
+    """List tickets authorized for the calling user with optional filtering."""
+    if user is None:
+        return []
+
     query = db.query(Ticket)
-    if user:
-        user_role = user.role if isinstance(user.role, UserRole) else UserRole(user.role)
-        if user_role == UserRole.EMPLOYEE:
-            query = query.filter(Ticket.creator_id == user.id)
-    return query.order_by(Ticket.created_at.desc()).offset(skip).limit(limit).all()
+    user_role = user.role if isinstance(user.role, UserRole) else UserRole(user.role)
+    if user_role == UserRole.EMPLOYEE:
+        query = query.filter(Ticket.creator_id == user.id)
+
+    if status_filter:
+        query = query.filter(Ticket.status == status_filter)
+    if priority_filter:
+        query = query.filter(Ticket.priority == priority_filter)
+    if category_filter:
+        query = query.filter(Ticket.category == category_filter)
+
+    all_tickets = query.order_by(Ticket.created_at.desc()).all()
+
+    if needing_escalation is not None:
+        filtered = []
+        for t in all_tickets:
+            is_cand, _ = is_escalation_candidate(t)
+            if is_cand == needing_escalation:
+                filtered.append(t)
+        return filtered[skip : skip + limit]
+
+    return all_tickets[skip : skip + limit]
 
 
 def update_ticket_status(
@@ -114,17 +143,23 @@ def update_ticket_status(
     user: Optional[User] = None,
     notes: Optional[str] = None,
 ) -> Ticket:
-    """Enforce valid status transitions and persist status history."""
+    """Enforce valid status transitions, RBAC permissions, and persist status history."""
     ticket = get_ticket(db, ticket_id, user)
 
     # Permission check for status change
     if user:
         user_role = user.role if isinstance(user.role, UserRole) else UserRole(user.role)
-        if user_role == UserRole.EMPLOYEE and new_status not in (TicketStatus.CLOSED, TicketStatus.IN_PROGRESS):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Employees may only close or reopen their own tickets.",
-            )
+        if user_role == UserRole.EMPLOYEE:
+            # Employees may only close their own tickets or reopen resolved/closed tickets back to IN_PROGRESS
+            if new_status == TicketStatus.CLOSED:
+                pass
+            elif new_status == TicketStatus.IN_PROGRESS and ticket.status in (TicketStatus.RESOLVED, TicketStatus.CLOSED):
+                pass
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Employees may only close their tickets or reopen resolved/closed tickets.",
+                )
 
     current_status = ticket.status
     if new_status == current_status:
@@ -162,6 +197,38 @@ def update_ticket_status(
         details={"old_status": old_status_val, "new_status": new_status.value, "notes": notes},
     )
     return ticket
+
+
+def close_ticket(
+    db: Session,
+    ticket_id: str,
+    user: Optional[User] = None,
+    notes: Optional[str] = None,
+) -> Ticket:
+    """Close a ticket and record status history."""
+    return update_ticket_status(
+        db=db,
+        ticket_id=ticket_id,
+        new_status=TicketStatus.CLOSED,
+        user=user,
+        notes=notes or "Ticket closed",
+    )
+
+
+def reopen_ticket(
+    db: Session,
+    ticket_id: str,
+    user: Optional[User] = None,
+    notes: Optional[str] = None,
+) -> Ticket:
+    """Reopen a resolved or closed ticket back to IN_PROGRESS."""
+    return update_ticket_status(
+        db=db,
+        ticket_id=ticket_id,
+        new_status=TicketStatus.IN_PROGRESS,
+        user=user,
+        notes=notes or "Ticket reopened for further investigation",
+    )
 
 
 def assign_ticket(
@@ -210,8 +277,110 @@ def resolve_ticket(db: Session, ticket_id: str, resolution_notes: str, user: Opt
     return update_ticket_status(db, ticket_id, TicketStatus.RESOLVED, user, notes=f"Resolved: {resolution_notes}")
 
 
-def escalate_ticket(db: Session, ticket_id: str, reason: str, target_group: str = "Tier-2 Operations", user: Optional[User] = None) -> Ticket:
-    """Escalate ticket to a higher tier group with reason."""
+def escalate_ticket(
+    db: Session,
+    ticket_id: str,
+    reason: str,
+    target_group: str = "Tier-2 Operations",
+    user: Optional[User] = None,
+) -> Ticket:
+    """Escalate ticket to a higher tier group with reason and record audit event."""
     ticket = get_ticket(db, ticket_id, user)
+    old_group = ticket.assigned_group
     ticket.assigned_group = target_group
-    return update_ticket_status(db, ticket_id, TicketStatus.ESCALATED, user, notes=f"Escalated to {target_group}: {reason}")
+    updated = update_ticket_status(
+        db,
+        ticket_id,
+        TicketStatus.ESCALATED,
+        user,
+        notes=f"Escalated to {target_group}: {reason}",
+    )
+    log_audit_event(
+        db=db,
+        event_type="TICKET_ESCALATED",
+        actor=user,
+        target_type="ticket",
+        target_id=ticket_id,
+        details={
+            "reason": reason,
+            "target_group": target_group,
+            "old_group": old_group,
+            "priority": ticket.priority.value,
+        },
+    )
+    return updated
+
+
+def is_escalation_candidate(ticket: Ticket) -> tuple[bool, Optional[str]]:
+    """
+    Determine if a ticket requires escalation.
+    Criteria:
+    - Ticket is in OPEN or IN_PROGRESS (not already ESCALATED, RESOLVED, or CLOSED).
+    - Critical priority P1 incidents.
+    - Security category tickets not yet assigned to Security Operations.
+    """
+    if ticket.status in (TicketStatus.ESCALATED, TicketStatus.RESOLVED, TicketStatus.CLOSED):
+        return False, None
+
+    if ticket.priority == TicketPriority.P1:
+        return True, "Critical P1 incident requires immediate escalation."
+
+    if ticket.category == "security" and ticket.assigned_group != "Security Operations":
+        return True, "Security incident requires escalation to Security Operations."
+
+    return False, None
+
+
+def get_tickets_needing_escalation(
+    db: Session,
+    user: Optional[User] = None,
+    skip: int = 0,
+    limit: int = 50,
+) -> List[Ticket]:
+    """
+    Identify high-priority or unresolved tickets that require escalation.
+    Restricted to Support Agents and Admins.
+    """
+    if user:
+        user_role = user.role if isinstance(user.role, UserRole) else UserRole(user.role)
+        if user_role == UserRole.EMPLOYEE:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Employees may not view queue-wide escalation candidates.",
+            )
+
+    candidates = (
+        db.query(Ticket)
+        .filter(Ticket.status.in_([TicketStatus.OPEN, TicketStatus.IN_PROGRESS]))
+        .order_by(Ticket.created_at.asc())
+        .all()
+    )
+    results = []
+    for tkt in candidates:
+        needs_esc, _ = is_escalation_candidate(tkt)
+        if needs_esc:
+            results.append(tkt)
+    return results[skip : skip + limit]
+
+
+def auto_escalate_qualifying_tickets(
+    db: Session,
+    user: Optional[User] = None,
+) -> List[Ticket]:
+    """
+    Identify and systematically escalate all open high-priority/security tickets.
+    """
+    to_escalate = get_tickets_needing_escalation(db, user=user, skip=0, limit=100)
+    escalated_tickets = []
+    for tkt in to_escalate:
+        _, reason = is_escalation_candidate(tkt)
+        target_group = "Security Operations" if tkt.category == "security" else "Tier-2 Operations"
+        updated = escalate_ticket(
+            db=db,
+            ticket_id=tkt.id,
+            reason=reason or "Automated escalation for high-priority/unresolved incident",
+            target_group=target_group,
+            user=user,
+        )
+        escalated_tickets.append(updated)
+    return escalated_tickets

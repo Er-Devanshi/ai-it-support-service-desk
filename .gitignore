@@ -64,6 +64,7 @@ yarn-error.log*
 
 # ----- Vector database files (Phase 2+) -----
 chroma_db/
+**/chroma_db/
 faiss_index/
 *.faiss
 *.pkl

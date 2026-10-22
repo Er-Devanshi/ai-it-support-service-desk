@@ -4,6 +4,7 @@ Covers Users, Tickets, Status History, Approvals, and Audit Events.
 """
 
 from datetime import datetime, timezone
+from typing import Optional
 import enum
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import declarative_base, relationship
@@ -94,6 +95,25 @@ class Ticket(Base):
     assignee = relationship("User", foreign_keys=[assignee_id], back_populates="tickets_assigned")
     status_history = relationship("TicketStatusHistory", back_populates="ticket", cascade="all, delete-orphan")
     approvals = relationship("ApprovalRequest", back_populates="ticket", cascade="all, delete-orphan")
+
+    @property
+    def is_escalated(self) -> bool:
+        """Return True if ticket is currently escalated or was previously escalated."""
+        if self.status == TicketStatus.ESCALATED:
+            return True
+        if self.status_history:
+            return any(h.new_status == TicketStatus.ESCALATED.value for h in self.status_history)
+        return False
+
+    @property
+    def escalation_reason(self) -> Optional[str]:
+        """Return the notes from the most recent escalation event, if any."""
+        if self.status_history:
+            for h in reversed(self.status_history):
+                if h.new_status == TicketStatus.ESCALATED.value:
+                    return h.notes
+        return None
+
 
 
 class TicketStatusHistory(Base):

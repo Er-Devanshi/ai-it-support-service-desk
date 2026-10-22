@@ -166,11 +166,68 @@ class SampleFAQRetriever(BaseRetriever):
         )
 
 
+class ChromaDBRetriever(BaseRetriever):
+    """
+    Production semantic retriever backed by ChromaDB vector database.
+    Performs dense vector similarity matching and enforces relevance thresholds.
+    """
+
+    def __init__(self, vector_store=None):
+        if vector_store is not None:
+            self.vector_store = vector_store
+        else:
+            from app.services.rag.vector_store import get_vector_store
+            self.vector_store = get_vector_store()
+
+    def retrieve(
+        self,
+        query: str,
+        context: Optional[str] = None,
+        top_k: int = 3,
+    ) -> RetrievalResult:
+        if not query or not query.strip():
+            return RetrievalResult(
+                query=query,
+                documents=[],
+                is_available=True,
+                provider_info=f"ChromaDB ({self.vector_store.embedding_service.model_name})",
+            )
+
+        # Prepend conversation context if present
+        augmented_query = query
+        if context and len(context.strip()) > 0:
+            recent_turns = [line.strip() for line in context.strip().split("\n") if line.strip()]
+            if recent_turns:
+                augmented_query = f"{recent_turns[-1]} {query}"
+
+        try:
+            chunks = self.vector_store.search(
+                query=augmented_query,
+                top_k=top_k,
+                relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
+            )
+            return RetrievalResult(
+                query=query,
+                documents=chunks,
+                is_available=True,
+                provider_info=f"ChromaDB ({self.vector_store.embedding_service.model_name})",
+            )
+        except Exception as e:
+            logger.error(f"ChromaDB retrieval error: {e}")
+            return RetrievalResult(
+                query=query,
+                documents=[],
+                is_available=False,
+                provider_info="ChromaDB",
+                error_message=str(e),
+            )
+
+
 # Global retriever registry allowing Sanskriti to register her vector database instance
 _active_retriever: Optional[BaseRetriever] = None
 
 
-def register_custom_retriever(retriever: BaseRetriever):
+def register_custom_retriever(retriever: Optional[BaseRetriever]):
     """
     Hook for Sanskriti to register her ChromaDB / FAISS retriever.
     Example:
@@ -179,17 +236,29 @@ def register_custom_retriever(retriever: BaseRetriever):
     """
     global _active_retriever
     _active_retriever = retriever
-    logger.info(f"Registered custom RAG retriever: {retriever.__class__.__name__}")
+    if retriever is not None:
+        logger.info(f"Registered custom RAG retriever: {retriever.__class__.__name__}")
+    else:
+        logger.info("Reset custom RAG retriever to default")
 
 
 def get_retriever() -> BaseRetriever:
-    """Return the active retriever (custom, sample fallback, or unconfigured)."""
+    """Return the active retriever (custom, ChromaDB, sample fallback, or unconfigured)."""
     global _active_retriever
     if _active_retriever is not None:
         return _active_retriever
 
     if not settings.RAG_ENABLED:
         return UnconfiguredRetriever()
+
+    # Try ChromaDB if initialized and has documents
+    try:
+        from app.services.rag.vector_store import get_vector_store
+        store = get_vector_store()
+        if store.count() > 0:
+            return ChromaDBRetriever(vector_store=store)
+    except Exception as e:
+        logger.debug(f"ChromaDB not ready or empty ({e}), using SampleFAQRetriever fallback")
 
     # Use the reference SampleFAQRetriever by default
     return SampleFAQRetriever()

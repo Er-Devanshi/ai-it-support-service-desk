@@ -1,282 +1,726 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ServiceDesk-AI — Autonomous Multi-Agent Assistant for Enterprise IT Operations with RAG Knowledge Retrieval" />
-  <title>ServiceDesk-AI — Autonomous IT Operations Dashboard</title>
-  <!-- Google Fonts: Inter -->
+  <title>ServiceDesk-AI — Enterprise IT Operations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
+  <!-- ===== Toast Notifications ===== -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
   <!-- ===== Login Modal ===== -->
-  <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true" aria-label="Sign In to ServiceDesk-AI">
+  <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-brand-badge">IT OPS</div>
-        <h2 class="modal-title">ServiceDesk-AI</h2>
-        <p class="modal-subtitle">Enterprise IT Support & Autonomous Operations</p>
+        <div class="modal-logo">
+          <div class="modal-logo-icon">🖥️</div>
+          <div>
+            <h2 class="modal-title">ServiceDesk<span class="accent">AI</span></h2>
+            <p class="modal-subtitle">Enterprise IT Operations Platform</p>
+          </div>
+        </div>
       </div>
 
-      <div id="loginError" class="login-error" hidden role="alert"></div>
+      <div id="loginError" class="login-error" hidden></div>
 
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabSignIn" type="button">Sign In</button>
+        <button class="auth-tab" id="tabSignUp" type="button">Sign Up</button>
+      </div>
+
+      <!-- Sign In Form -->
       <form id="loginForm" autocomplete="off">
+        <div id="loginError" class="login-error" hidden></div>
         <div class="form-group">
           <label for="loginUsername">Username</label>
-          <input type="text" id="loginUsername" placeholder="e.g. employee, support_agent, admin" required />
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="loginUsername" placeholder="Enter your username" required />
+          </div>
         </div>
         <div class="form-group">
           <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" placeholder="Enter password" required />
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="loginPassword" placeholder="Enter your password" required />
+            <button type="button" class="password-toggle" id="passwordToggle">👁️</button>
+          </div>
         </div>
-        <button type="submit" class="primary-btn w-full" id="loginBtn">Sign In</button>
+        <button type="submit" class="primary-btn w-full" id="loginBtn">
+          <span id="loginBtnText">Sign In</span>
+        </button>
       </form>
 
-      <div class="quick-demo-accounts">
-        <span class="quick-demo-title">Quick 1-Click Demo Login:</span>
-        <div class="quick-demo-buttons">
-          <button type="button" class="demo-chip" data-user="employee" data-pass="employee123" title="Login as Employee">
-            👤 Employee
-          </button>
-          <button type="button" class="demo-chip" data-user="support_agent" data-pass="agent123" title="Login as Support Agent">
-            🎧 Agent
-          </button>
-          <button type="button" class="demo-chip" data-user="admin" data-pass="admin123" title="Login as Administrator">
-            ⚡ Admin
-          </button>
+      <!-- Sign Up Form -->
+      <form id="registerForm" autocomplete="off" hidden>
+        <div class="form-group">
+          <label for="regUsername">Username</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="regUsername" placeholder="Choose a username (min 3 chars)" required minlength="3" />
+          </div>
         </div>
+        <div class="form-group">
+          <label for="regEmail">Email</label>
+          <div class="input-wrapper">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="regEmail" placeholder="your@email.com" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="regPassword" placeholder="Min 6 characters" required minlength="6" />
+          </div>
+        </div>
+        <div id="registerError" class="login-error" hidden></div>
+        <button type="submit" class="primary-btn w-full" id="registerBtn">
+          <span id="registerBtnText">Create Account</span>
+        </button>
+        <p style="font-size:.75rem;color:var(--text3);text-align:center;margin-top:.6rem;">New accounts get Employee role by default.</p>
+      </form>
+
+      <div class="demo-divider" id="demoDivider"><span>Quick Demo Login</span></div>
+      <div class="quick-demo-buttons">
+        <button class="demo-chip employee" data-user="employee" data-pass="employee123">
+          <span class="chip-icon">👤</span>
+          <div>
+            <div class="chip-role">Employee</div>
+            <div class="chip-cred">employee / employee123</div>
+          </div>
+        </button>
+        <button class="demo-chip agent" data-user="support_agent" data-pass="agent123">
+          <span class="chip-icon">🎧</span>
+          <div>
+            <div class="chip-role">Support Agent</div>
+            <div class="chip-cred">support_agent / agent123</div>
+          </div>
+        </button>
+        <button class="demo-chip admin" data-user="admin" data-pass="admin123">
+          <span class="chip-icon">⚡</span>
+          <div>
+            <div class="chip-role">Administrator</div>
+            <div class="chip-cred">admin / admin123</div>
+          </div>
+        </button>
       </div>
 
-      <button type="button" class="modal-skip-btn" id="skipLoginBtn">Continue as Guest (Anonymous Mode)</button>
+      <button type="button" class="guest-btn" id="skipLoginBtn">
+        Continue as Guest (Anonymous Mode)
+      </button>
     </div>
   </div>
 
-  <!-- ===== Header ===== -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="header-brand">
-        <div class="brand-icon">🖥️</div>
+  <!-- ===== Sidebar Navigation ===== -->
+  <nav class="app-nav" id="appNav">
+    <div class="nav-brand">
+      <div class="nav-logo">🖥️</div>
+      <div class="nav-brand-text">
+        <span class="nav-title">ServiceDesk</span>
+        <span class="nav-accent">AI</span>
+      </div>
+    </div>
+
+    <ul class="nav-items">
+      <li>
+        <button class="nav-item active" data-tab="chat">
+          <span class="nav-icon">💬</span>
+          <span class="nav-label">AI Chat</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-item" data-tab="services">
+          <span class="nav-icon">📡</span>
+          <span class="nav-label">Service Health</span>
+          <span class="nav-badge success" id="servicesBadge" hidden>●</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-item" data-tab="tickets">
+          <span class="nav-icon">🎫</span>
+          <span class="nav-label">Tickets</span>
+          <span class="nav-badge" id="ticketsBadge" hidden>0</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-item" data-tab="approvals">
+          <span class="nav-icon">✅</span>
+          <span class="nav-label">Approvals</span>
+          <span class="nav-badge danger" id="approvalsBadge" hidden>0</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-item" data-tab="analytics">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Analytics</span>
+        </button>
+      </li>
+      <li>
+        <button class="nav-item" data-tab="audit" id="auditNavItem" hidden>
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Audit Logs</span>
+        </button>
+      </li>
+    </ul>
+
+    <div class="nav-footer">
+      <div class="nav-status">
+        <span class="status-dot" id="navStatusDot"></span>
+        <span id="navStatusText" class="nav-status-text">Connecting…</span>
+      </div>
+      <button class="nav-item theme-toggle" id="themeToggle" title="Toggle dark mode">
+        <span class="nav-icon" id="themeIcon">🌙</span>
+        <span class="nav-label">Dark Mode</span>
+      </button>
+      <button class="nav-item nav-user" id="navUserBtn" hidden>
+        <div class="nav-avatar" id="navAvatar">?</div>
+        <div class="nav-user-info">
+          <span class="nav-username" id="navUsername">Guest</span>
+          <span class="nav-userrole" id="navUserrole"></span>
+        </div>
+      </button>
+      <button class="nav-item nav-logout" id="navLogoutBtn" hidden>
+        <span class="nav-icon">🚪</span>
+        <span class="nav-label">Sign Out</span>
+      </button>
+      <button class="nav-item nav-login" id="navLoginBtn">
+        <span class="nav-icon">🔑</span>
+        <span class="nav-label">Sign In</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== Main Content ===== -->
+  <div class="app-content">
+
+    <!-- Top Header Bar -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="hamburger" id="hamburger">☰</button>
+        <div class="breadcrumb" id="breadcrumb">AI Chat Assistant</div>
+      </div>
+      <div class="top-bar-right">
+        <div class="top-badges">
+          <div class="top-badge" id="llmBadge" title="LLM Provider">
+            <span id="llmBadgeText">Loading…</span>
+          </div>
+          <div class="top-badge rag-badge" id="ragTopBadge" title="RAG Status">
+            <span class="rag-dot-small"></span>
+            <span id="ragTopText">RAG</span>
+          </div>
+        </div>
+        <button class="notif-bell" id="notifBell" title="Notifications">
+          🔔
+          <span class="notif-dot" id="notifDot" hidden></span>
+        </button>
+        <button class="icon-btn" id="headerLoginBtn" title="Sign in">🔑</button>
+      </div>
+    </header>
+
+    <!-- ===== TAB: CHAT ===== -->
+    <div class="tab-content active" id="tab-chat">
+      <div class="chat-layout">
+
+        <!-- Chat Main Area -->
+        <div class="chat-main">
+          <div class="chat-container">
+
+            <div class="chat-header">
+              <div class="chat-header-info">
+                <div class="chat-avatar-ai">🤖</div>
+                <div>
+                  <div class="chat-agent-name">ServiceDesk AI</div>
+                  <div class="chat-agent-status">
+                    <span class="online-dot"></span> Online · Autonomous Multi-Agent Mode
+                  </div>
+                </div>
+              </div>
+              <div class="chat-header-actions">
+                <button class="icon-btn-sm" id="summaryBtn" title="AI Session Summary">📋</button>
+                <button class="icon-btn-sm" id="exportChatBtn" title="Export conversation">📥</button>
+                <button class="icon-btn-sm" id="clearChatBtn" title="New session">🔄</button>
+              </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages" role="log">
+              <div class="empty-state" id="emptyState">
+                <div class="empty-icon">🤖</div>
+                <h3>Welcome to ServiceDesk AI</h3>
+                <p>Describe your IT issue and I'll help diagnose, troubleshoot, or escalate it — powered by AI and enterprise knowledge base.</p>
+                <div class="quick-prompts-grid">
+                  <button class="qp-card" data-prompt="My VPN keeps disconnecting with error code 412">
+                    <span class="qp-icon">🌐</span>
+                    <div>
+                      <div class="qp-title">VPN Issue</div>
+                      <div class="qp-desc">Error 412 / Disconnect</div>
+                    </div>
+                  </button>
+                  <button class="qp-card" data-prompt="Wi-Fi is not connecting on my Windows laptop">
+                    <span class="qp-icon">📶</span>
+                    <div>
+                      <div class="qp-title">Wi-Fi Problem</div>
+                      <div class="qp-desc">No connection</div>
+                    </div>
+                  </button>
+                  <button class="qp-card" data-prompt="Please unlock account for user john.doe — it's locked">
+                    <span class="qp-icon">🔒</span>
+                    <div>
+                      <div class="qp-title">Account Unlock</div>
+                      <div class="qp-desc">Locked user account</div>
+                    </div>
+                  </button>
+                  <button class="qp-card" data-prompt="Printer spooler service is stuck and won't print">
+                    <span class="qp-icon">🖨️</span>
+                    <div>
+                      <div class="qp-title">Printer Error</div>
+                      <div class="qp-desc">Spooler stuck</div>
+                    </div>
+                  </button>
+                  <button class="qp-card" data-prompt="My laptop is extremely slow, high CPU usage all the time">
+                    <span class="qp-icon">⚡</span>
+                    <div>
+                      <div class="qp-title">Slow PC</div>
+                      <div class="qp-desc">High CPU / RAM</div>
+                    </div>
+                  </button>
+                  <button class="qp-card" data-prompt="I received a suspicious phishing email from IT claiming my password expired">
+                    <span class="qp-icon">🚨</span>
+                    <div>
+                      <div class="qp-title">Security Alert</div>
+                      <div class="qp-desc">Phishing email</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-area">
+              <!-- Smart Suggestions -->
+              <div class="suggestions-bar" id="suggestionsBar" hidden>
+                <span class="suggestions-label">💡 Suggestions:</span>
+                <div class="suggestions-chips" id="suggestionsChips"></div>
+              </div>
+              <form id="chatForm" autocomplete="off">
+                <div class="chat-input-wrapper">
+                  <textarea
+                    id="messageInput"
+                    class="chat-input"
+                    rows="1"
+                    placeholder="Describe your IT issue… (Enter to send, Shift+Enter for new line)"
+                    maxlength="2000"
+                    required
+                  ></textarea>
+                  <div class="chat-input-actions">
+                    <span class="char-counter" id="charCounter">0/2000</span>
+                    <button type="submit" class="send-btn" id="sendBtn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Context Panel (below chat) -->
+          <div class="context-panel" id="contextPanel" hidden>
+            <div class="context-panel-header">
+              <span>Active Workflow Context</span>
+              <button class="icon-btn-sm" id="closeContextPanel">✕</button>
+            </div>
+            <div class="context-items" id="contextItems"></div>
+          </div>
+        </div>
+
+        <!-- Chat Sidebar -->
+        <aside class="chat-sidebar">
+          
+          <div class="sidebar-card">
+            <div class="sidebar-card-title">Common IT Issues</div>
+            <ul class="quick-list">
+              <li data-msg="My Wi-Fi is not working"><span>📶</span> Wi-Fi / Network</li>
+              <li data-msg="I need to reset my password"><span>🔑</span> Password Reset</li>
+              <li data-msg="VPN is not connecting"><span>🌐</span> VPN Connection</li>
+              <li data-msg="My email is not syncing in Outlook"><span>✉️</span> Email / Outlook</li>
+              <li data-msg="The printer is not responding"><span>🖨️</span> Printer Issue</li>
+              <li data-msg="My computer is very slow today"><span>🐌</span> Slow PC</li>
+              <li data-msg="MFA authenticator is not generating codes"><span>🛡️</span> MFA / 2FA</li>
+              <li data-msg="I received a suspicious phishing email"><span>🚨</span> Phishing Alert</li>
+            </ul>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="sidebar-card-title">IT Actions & Workflows</div>
+            <ul class="quick-list">
+              <li data-msg="Please create a support ticket for my network issue"><span>🎫</span> Create Ticket</li>
+              <li data-msg="Check account status for user employee"><span>🔍</span> Check Account</li>
+              <li data-msg="Is VPN service currently down?"><span>📡</span> Service Health</li>
+              <li data-msg="Please unlock account for user john.doe"><span>🔓</span> Unlock Account</li>
+              <li data-msg="Grant access to Restricted-DB for employee"><span>🛡️</span> Request Access</li>
+            </ul>
+          </div>
+
+          <div class="sidebar-card rag-card">
+            <div class="sidebar-card-title">
+              Knowledge Base
+              <span class="rag-status-pill" id="ragStatusPill">Active</span>
+            </div>
+            <div class="rag-stats">
+              <div class="rag-stat">
+                <div class="rag-stat-val" id="ragChunks">—</div>
+                <div class="rag-stat-label">Chunks</div>
+              </div>
+              <div class="rag-stat">
+                <div class="rag-stat-val" id="ragDocs">—</div>
+                <div class="rag-stat-label">Documents</div>
+              </div>
+              <div class="rag-stat">
+                <div class="rag-stat-val" id="ragModel">—</div>
+                <div class="rag-stat-label">Model</div>
+              </div>
+            </div>
+            <button class="reindex-btn" id="reindexBtn">🔄 Re-Index KB</button>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="sidebar-card-title">API Docs</div>
+            <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener" class="docs-link">
+              📖 Open Swagger UI →
+            </a>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ===== TAB: TICKETS ===== -->
+    <div class="tab-content" id="tab-tickets">
+      <div class="page-header">
         <div>
-          <h1 class="logo">ServiceDesk-AI</h1>
-          <span class="tagline">Autonomous Multi-Agent Assistant for Enterprise IT</span>
+          <h2 class="page-title">Support Tickets</h2>
+          <p class="page-desc">Manage and track all IT support requests</p>
+        </div>
+        <button class="primary-btn" id="newTicketBtn">+ New Ticket</button>
+      </div>
+
+      <!-- Ticket Filters -->
+      <div class="filter-bar">
+        <select class="filter-select" id="ticketStatusFilter">
+          <option value="">All Statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="PENDING_APPROVAL">Pending Approval</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="ESCALATED">Escalated</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+        <select class="filter-select" id="ticketPriorityFilter">
+          <option value="">All Priorities</option>
+          <option value="P1">P1 — Critical</option>
+          <option value="P2">P2 — High</option>
+          <option value="P3">P3 — Medium</option>
+          <option value="P4">P4 — Low</option>
+        </select>
+        <input type="text" class="filter-search" id="ticketSearch" placeholder="🔍 Search tickets…" />
+        <button class="icon-btn" id="refreshTicketsBtn" title="Refresh">🔄</button>
+      </div>
+
+      <!-- Ticket Stats Row -->
+      <div class="stats-row" id="ticketStats">
+        <div class="stat-card">
+          <div class="stat-val" id="statTotal">—</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card open">
+          <div class="stat-val" id="statOpen">—</div>
+          <div class="stat-label">Open</div>
+        </div>
+        <div class="stat-card progress">
+          <div class="stat-val" id="statInProgress">—</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card escalated">
+          <div class="stat-val" id="statEscalated">—</div>
+          <div class="stat-label">Escalated</div>
+        </div>
+        <div class="stat-card resolved">
+          <div class="stat-val" id="statResolved">—</div>
+          <div class="stat-label">Resolved</div>
         </div>
       </div>
 
-      <div class="header-badges">
-        <!-- Live Backend Status -->
-        <div class="badge status-badge" id="statusBadge" title="Live Backend API Status">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Connecting…</span>
-        </div>
-
-        <!-- Model Mode Badge -->
-        <div class="badge mode-badge" id="modeBadge" title="Active LLM Provider and Orchestration Mode">
-          Mode: —
-        </div>
-
-        <!-- RAG Status Badge -->
-        <div class="badge rag-badge" id="ragBadge" title="RAG Vector Database Status">
-          <span class="rag-dot"></span>
-          <span id="ragBadgeText">RAG: Active</span>
-        </div>
-
-        <!-- Auth Pill -->
-        <div class="auth-pill" id="authPill">
-          <div class="user-avatar" id="userAvatar">?</div>
-          <span id="authUsername">Not signed in</span>
-          <button class="auth-btn" id="logoutBtn" hidden title="Sign out of current session">Sign out</button>
+      <!-- Ticket Table -->
+      <div class="table-card">
+        <div class="table-wrapper" id="ticketTableWrapper">
+          <div class="loading-state" id="ticketsLoading">Loading tickets…</div>
+          <table class="data-table" id="ticketTable" hidden>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Assigned Group</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ticketTableBody"></tbody>
+          </table>
+          <div class="empty-table" id="ticketsEmpty" hidden>No tickets found.</div>
         </div>
       </div>
     </div>
-  </header>
 
-  <!-- ===== Main Dashboard Layout ===== -->
-  <main class="main">
-
-    <!-- Center Column: Chat & Information Panel -->
-    <div class="chat-column">
-
-      <!-- Chat Container -->
-      <section class="chat-container" aria-label="Support chat session">
-        <div class="chat-header-bar">
-          <div class="chat-status-indicator">
-            <span class="pulse-indicator"></span>
-            <span>Autonomous Support Assistant Active</span>
-          </div>
-          <button type="button" class="clear-chat-btn" id="clearChatBtn" title="Start new conversation session">
-            🔄 New Session
-          </button>
+    <!-- ===== TAB: APPROVALS ===== -->
+    <div class="tab-content" id="tab-approvals">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Approval Requests</h2>
+          <p class="page-desc">Human-in-the-loop authorization for protected IT actions</p>
         </div>
+        <button class="secondary-btn" id="refreshApprovalsBtn">🔄 Refresh</button>
+      </div>
 
-        <!-- Messages Thread -->
-        <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
-          <!-- Empty State (shown when no messages exist) -->
-          <div class="empty-state" id="emptyState">
-            <div class="empty-state-icon">🤖</div>
-            <h3 class="empty-state-title">Welcome to ServiceDesk-AI Operations</h3>
-            <p class="empty-state-desc">
-              Ask any IT support question, request diagnostics, or trigger automated workflows.
-              Responses are grounded using local <strong>ChromaDB semantic retrieval</strong> and orchestrated via <strong>LangGraph multi-agent workflow</strong>.
-            </p>
-            <div class="quick-prompts-grid">
-              <button type="button" class="quick-prompt-card" data-prompt="VPN is not connecting with Error 412">
-                <span class="qp-icon">🌐</span>
-                <span class="qp-text">VPN Connection (Error 412)</span>
-              </button>
-              <button type="button" class="quick-prompt-card" data-prompt="My Wi-Fi is not working on Windows">
-                <span class="qp-icon">📶</span>
-                <span class="qp-text">Wi-Fi Disconnected</span>
-              </button>
-              <button type="button" class="quick-prompt-card" data-prompt="Please unlock account for user employee">
-                <span class="qp-icon">🔒</span>
-                <span class="qp-text">Request Account Unlock</span>
-              </button>
-              <button type="button" class="quick-prompt-card" data-prompt="The printer spooler is stuck and not responding">
-                <span class="qp-icon">🖨️</span>
-                <span class="qp-text">Printer Spooler Error</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Chat Input Form -->
-        <form class="chat-input-row" id="chatForm" autocomplete="off">
-          <label for="messageInput" class="sr-only">Type your IT support question</label>
-          <textarea
-            id="messageInput"
-            class="chat-input"
-            rows="1"
-            placeholder="Describe your IT issue… (Press Enter to send, Shift+Enter for new line)"
-            maxlength="2000"
-            required
-            aria-label="IT issue message input"
-          ></textarea>
-          <button type="submit" class="send-btn" id="sendBtn" aria-label="Send support message">
-            <span class="send-btn-text">Send</span>
-            <span class="send-btn-icon">➤</span>
-          </button>
-        </form>
-      </section>
-
-      <!-- Ticket & Approval Live Panel -->
-      <section class="info-panel" id="infoPanel" hidden aria-label="Ticket and workflow details">
-        <div class="info-panel-title">Active Workflow Context</div>
-        <div class="info-panel-inner">
-          <div class="info-item ticket-card" id="ticketInfo" hidden>
-            <span class="info-icon">🎫</span>
-            <div class="info-content">
-              <strong>Support Ticket Created</strong>
-              <div id="ticketDetails" class="info-detail"></div>
-            </div>
-          </div>
-          <div class="info-item approval-card" id="approvalInfo" hidden>
-            <span class="info-icon">⚠️</span>
-            <div class="info-content">
-              <strong>Human-in-the-Loop Approval Required</strong>
-              <div id="approvalDetails" class="info-detail"></div>
-            </div>
-          </div>
-          <div class="info-item escalation-card" id="escalationInfo" hidden>
-            <span class="info-icon">🚨</span>
-            <div class="info-content">
-              <strong>Escalated to IT Operations</strong>
-              <div id="escalationDetails" class="info-detail"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <div class="approvals-grid" id="approvalsGrid">
+        <div class="loading-state">Loading approvals…</div>
+      </div>
     </div>
 
-    <!-- Right Column: Sidebar Navigation & Tools -->
-    <aside class="sidebar" aria-label="Quick IT inquiries and actions">
-      
-      <!-- Quick IT Inquiries -->
-      <div class="sidebar-section">
-        <h2 class="sidebar-title">Common IT Inquiries</h2>
-        <ul class="topic-list" id="topicList">
-          <li data-msg="My Wi-Fi is not working"><span class="list-bullet">📶</span> Wi-Fi / Internet</li>
-          <li data-msg="I need to reset my password"><span class="list-bullet">🔑</span> Password Reset</li>
-          <li data-msg="VPN is not connecting"><span class="list-bullet">🌐</span> VPN Connection Issue</li>
-          <li data-msg="My email is not syncing"><span class="list-bullet">✉️</span> Email Sync / Outlook</li>
-          <li data-msg="The printer is not responding"><span class="list-bullet">🖨️</span> Printer Problem</li>
-          <li data-msg="My computer is very slow"><span class="list-bullet">⚡</span> Slow Performance</li>
-          <li data-msg="MFA authenticator is not working"><span class="list-bullet">🛡️</span> MFA / 2FA Authenticator</li>
-          <li data-msg="I received a suspicious phishing email claiming to be IT"><span class="list-bullet">🚨</span> Phishing / Security Alert</li>
-        </ul>
+    <!-- ===== TAB: ANALYTICS ===== -->
+    <div class="tab-content" id="tab-analytics">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Analytics Dashboard</h2>
+          <p class="page-desc">Real-time insights into IT operations and support trends</p>
+        </div>
       </div>
 
-      <!-- Simulated Automated Workflows -->
-      <div class="sidebar-section">
-        <h2 class="sidebar-title">Automated IT Workflows</h2>
-        <ul class="topic-list" id="actionList">
-          <li data-msg="Please create a ticket for my ongoing network issue"><span class="list-bullet">🎫</span> Create Support Ticket</li>
-          <li data-msg="Check account status for employee"><span class="list-bullet">🔍</span> Check Account Status</li>
-          <li data-msg="Is VPN service down?"><span class="list-bullet">🌐</span> Check Service Health</li>
-          <li data-msg="Please unlock account for user john.doe"><span class="list-bullet">🔒</span> Request Account Unlock</li>
-          <li data-msg="Grant access to Restricted-DB for employee"><span class="list-bullet">🛡️</span> Request Resource Access</li>
-        </ul>
-      </div>
+      <div class="analytics-grid">
+        <!-- KPI Cards -->
+        <div class="kpi-card">
+          <div class="kpi-icon">🎫</div>
+          <div class="kpi-val" id="kpiTotal">—</div>
+          <div class="kpi-label">Total Tickets</div>
+          <div class="kpi-trend up" id="kpiTotalTrend"></div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-icon">🚨</div>
+          <div class="kpi-val" id="kpiP1">—</div>
+          <div class="kpi-label">Critical (P1)</div>
+        </div>
+        <div class="kpi-card success">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-val" id="kpiResolved">—</div>
+          <div class="kpi-label">Resolved Today</div>
+        </div>
+        <div class="kpi-card info">
+          <div class="kpi-icon">⏳</div>
+          <div class="kpi-val" id="kpiPending">—</div>
+          <div class="kpi-label">Pending Approvals</div>
+        </div>
 
-      <!-- RAG Knowledge Base Live Status Card -->
-      <div class="sidebar-section">
-        <div class="rag-status-card">
-          <div class="rag-card-header">
-            <span class="rag-card-title">📚 Knowledge Base (RAG)</span>
-            <span class="rag-status-badge online" id="ragCardBadge">Active</span>
+        <!-- Category Breakdown -->
+        <div class="chart-card span-2">
+          <div class="chart-title">Tickets by Category</div>
+          <div class="bar-chart" id="categoryChart"></div>
+        </div>
+
+        <!-- Priority Distribution -->
+        <div class="chart-card">
+          <div class="chart-title">Priority Distribution</div>
+          <div class="donut-chart-wrapper">
+            <div class="donut-chart" id="priorityDonut"></div>
+            <div class="donut-legend" id="priorityLegend"></div>
           </div>
-          <div class="rag-metrics">
-            <div class="rag-metric">
-              <span class="rag-metric-label">Vector Store</span>
-              <span class="rag-metric-val" id="ragVectorDbVal">ChromaDB</span>
-            </div>
-            <div class="rag-metric">
-              <span class="rag-metric-label">Embedding Model</span>
-              <span class="rag-metric-val" id="ragModelVal">all-MiniLM-L6-v2</span>
-            </div>
-            <div class="rag-metric">
-              <span class="rag-metric-label">Chunks Indexed</span>
-              <span class="rag-metric-val" id="ragChunksVal">28 chunks</span>
-            </div>
-          </div>
-          <button type="button" class="rag-reindex-btn" id="reindexBtn" title="Re-index Knowledge Base (Requires Admin/Agent role)">
-            🔄 Re-Index Knowledge Base
-          </button>
+        </div>
+
+        <!-- Status Distribution -->
+        <div class="chart-card span-2">
+          <div class="chart-title">Ticket Status Overview</div>
+          <div class="status-chart" id="statusChart"></div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="chart-card">
+          <div class="chart-title">Recent Activity</div>
+          <div class="activity-feed" id="activityFeed"></div>
         </div>
       </div>
-
-      <!-- Demo Accounts Guide -->
-      <div class="sidebar-info-box">
-        <h4>Demo Accounts & Roles:</h4>
-        <div class="demo-acc-item" data-user="employee" data-pass="employee123">
-          <strong>Employee:</strong> <code>employee</code> / <code>employee123</code>
-        </div>
-        <div class="demo-acc-item" data-user="support_agent" data-pass="agent123">
-          <strong>Agent:</strong> <code>support_agent</code> / <code>agent123</code>
-        </div>
-        <div class="demo-acc-item" data-user="admin" data-pass="admin123">
-          <strong>Admin:</strong> <code>admin</code> / <code>admin123</code>
-        </div>
-        <p class="api-docs-link">
-          API Documentation: <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener">/docs</a>
-        </p>
-      </div>
-
-    </aside>
-
-  </main>
-
-  <!-- ===== Footer ===== -->
-  <footer class="footer">
-    <div class="footer-content">
-      <span><strong>ServiceDesk-AI</strong> · Autonomous Multi-Agent Assistant for Enterprise IT Operations</span>
-      <span class="footer-meta">FastAPI &nbsp;|&nbsp; LangGraph Orchestration &nbsp;|&nbsp; ChromaDB Semantic RAG &nbsp;|&nbsp; SentenceTransformers</span>
     </div>
-  </footer>
+
+    <!-- ===== TAB: AUDIT LOGS ===== -->
+    <div class="tab-content" id="tab-audit">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Audit Logs</h2>
+          <p class="page-desc">Complete audit trail of system events (Admin only)</p>
+        </div>
+        <button class="secondary-btn" id="refreshAuditBtn">🔄 Refresh</button>
+      </div>
+
+      <div class="filter-bar">
+        <select class="filter-select" id="auditEventFilter">
+          <option value="">All Events</option>
+          <option value="LOGIN_SUCCESS">Login Success</option>
+          <option value="LOGIN_FAILED">Login Failed</option>
+          <option value="TICKET_CREATED">Ticket Created</option>
+          <option value="TICKET_ESCALATED">Ticket Escalated</option>
+          <option value="APPROVAL_APPROVED">Approval Approved</option>
+          <option value="APPROVAL_REJECTED">Approval Rejected</option>
+          <option value="SELF_APPROVAL_BLOCKED">Self-Approval Blocked</option>
+        </select>
+      </div>
+
+      <div class="table-card">
+        <div class="table-wrapper">
+          <div class="loading-state" id="auditLoading">Loading audit logs…</div>
+          <table class="data-table" id="auditTable" hidden>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Event</th>
+                <th>Actor</th>
+                <th>Target</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody"></tbody>
+          </table>
+          <div class="empty-table" id="auditEmpty" hidden>No audit events found.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: SERVICE HEALTH ===== -->
+    <div class="tab-content" id="tab-services">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">🟢 Live Service Health</h2>
+          <p class="page-desc">Real-time status of enterprise IT infrastructure</p>
+        </div>
+        <div style="display:flex;gap:.6rem;align-items:center;">
+          <div class="uptime-clock" id="uptimeClock">Last refreshed: just now</div>
+          <button class="secondary-btn" id="refreshServicesBtn">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Overall Status Banner -->
+      <div class="overall-status-banner" id="overallStatusBanner">
+        <span class="overall-status-icon" id="overallIcon">✅</span>
+        <div>
+          <div class="overall-status-title" id="overallTitle">All Systems Operational</div>
+          <div class="overall-status-sub" id="overallSub">7 services monitored · Last checked just now</div>
+        </div>
+        <div class="overall-uptime" id="overallUptime">99.97% avg uptime</div>
+      </div>
+
+      <!-- Service Cards Grid -->
+      <div class="services-grid" id="servicesGrid">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Incident Log -->
+      <div class="chart-card" style="margin-top:1.25rem;">
+        <div class="chart-title">⚠️ Known Issues & Incidents</div>
+        <div class="incident-list" id="incidentList"></div>
+      </div>
+    </div>
+
+  </div><!-- .app-content -->
+
+  <!-- Floating AI Button -->
+  <button class="fab" id="fabBtn" title="Open AI Chat">
+    <span class="fab-icon">🤖</span>
+    <span class="fab-pulse"></span>
+  </button>
+
+  <!-- ===== Session Summary Modal ===== -->
+  <div class="modal-overlay" id="summaryModal" hidden>
+    <div class="modal-box">
+      <div class="modal-top-bar">
+        <h3>📋 Session Summary</h3>
+        <button class="icon-btn" id="closeSummaryModal">✕</button>
+      </div>
+      <div id="summaryContent" class="summary-content">
+        <div class="loading-state">Generating AI summary…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Notification Dropdown ===== -->
+  <div class="notif-dropdown" id="notifDropdown" hidden>
+    <div class="notif-header">
+      <span>🔔 Notifications</span>
+      <button class="link-btn" id="clearNotifsBtn">Clear all</button>
+    </div>
+    <div class="notif-list" id="notifList">
+      <div class="notif-empty">No new notifications</div>
+    </div>
+  </div>
+
+  <!-- ===== Ticket Detail Modal ===== -->
+  <div class="modal-overlay" id="ticketModal" hidden>
+    <div class="modal-box ticket-modal-box">
+      <div class="modal-top-bar">
+        <h3 id="ticketModalTitle">Ticket Details</h3>
+        <button class="icon-btn" id="closeTicketModal">✕</button>
+      </div>
+      <div id="ticketModalBody" class="ticket-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== New Ticket Modal ===== -->
+  <div class="modal-overlay" id="newTicketModal" hidden>
+    <div class="modal-box">
+      <div class="modal-top-bar">
+        <h3>Create New Ticket</h3>
+        <button class="icon-btn" id="closeNewTicketModal">✕</button>
+      </div>
+      <form id="newTicketForm">
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="ntTitle" placeholder="Brief description of issue" required />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="ntDescription" rows="3" placeholder="Detailed description" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="ntCategory">
+              <option value="general">General</option>
+              <option value="network">Network</option>
+              <option value="account">Account</option>
+              <option value="security">Security</option>
+              <option value="hardware">Hardware</option>
+              <option value="software">Software</option>
+              <option value="email">Email</option>
+              <option value="performance">Performance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="ntPriority">
+              <option value="P3">P3 — Medium</option>
+              <option value="P1">P1 — Critical</option>
+              <option value="P2">P2 — High</option>
+              <option value="P4">P4 — Low</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="primary-btn w-full" id="submitNewTicket">Create Ticket</button>
+      </form>
+    </div>
+  </div>
 
   <script src="js/app.js"></script>
 </body>

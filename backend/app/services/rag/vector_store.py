@@ -10,12 +10,18 @@ Provides:
 
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-import chromadb
-from chromadb.config import Settings as ChromaSettings
 from app.config import settings
 from app.utils.logger import logger
 from app.services.rag.retrieval_interface import RetrievedChunk
 from app.services.rag.embeddings import BaseEmbeddingService, get_embedding_service
+
+try:
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    CHROMADB_AVAILABLE = False
+    logger.warning("chromadb not installed — ChromaVectorStore will be unavailable. RAG will use fallback retriever.")
 
 
 class ChromaVectorStore:
@@ -27,6 +33,9 @@ class ChromaVectorStore:
         collection_name: Optional[str] = None,
         embedding_service: Optional[BaseEmbeddingService] = None,
     ):
+        if not CHROMADB_AVAILABLE:
+            raise ImportError("chromadb is not installed. Run: pip install chromadb")
+
         self.persist_dir = Path(persist_dir or settings.CHROMA_PERSIST_DIR)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         self.collection_name = collection_name or settings.CHROMA_COLLECTION_NAME

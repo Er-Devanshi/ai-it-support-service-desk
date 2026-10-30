@@ -26,10 +26,15 @@ from app.services.rag.embeddings import (
     MockEmbeddingService,
     get_embedding_service,
 )
-from app.services.rag.vector_store import (
-    ChromaVectorStore,
-    get_vector_store,
-)
+
+try:
+    from app.services.rag.vector_store import (
+        ChromaVectorStore,
+        get_vector_store,
+    )
+    _vector_store_available = True
+except ImportError:
+    _vector_store_available = False
 
 __all__ = [
     "BaseRetriever",

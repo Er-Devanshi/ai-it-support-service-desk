@@ -20,7 +20,7 @@ pyjwt>=2.8.0
 httpx>=0.27.0
 
 # Workflow orchestration
-langgraph>=0.2.0
+langgraph>=0.2.0,<0.3.0
 
 # Testing
 pytest>=8.0.0

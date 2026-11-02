@@ -85,7 +85,7 @@ def test_langgraph_loop_bounding_and_termination():
         "final_reply": "",
         "final_status": "answered",
         "note": "",
-        "mode": "mock",
+        "mode": "own_engine",
         "iteration_count": 0,
         "is_terminal": False,
     }

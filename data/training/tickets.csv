@@ -1,0 +1,462 @@
+text,category,subcategory,impact,urgency
+5G network not available,network,wifi,Low,Medium
+ACL synchronization issue,account,permissions,Low,Low
+Access denied to network shares,account,permissions,Medium,High
+Access removal needed,account,permissions,Low,Medium
+Accidental deletion,hardware,storage,Medium,High
+Account access provisioning,account,permissions,Low,Medium
+Account archived by mistake,account,locked,Medium,High
+Account consolidation request,account,credentials,Low,Low
+Account deprovisioning,account,locked,Low,Medium
+Account has special characters in password,account,credentials,Low,Low
+Account is locked,account,locked,Medium,High
+Account locked after password change,account,locked,Medium,Medium
+Account needs to be unlocked,account,locked,Medium,High
+Account recovery needed,account,locked,High,High
+Account sync problems,account,credentials,Low,Medium
+Account tenure verification needed,account,credentials,Low,Low
+Active directory sync problem,account,credentials,Low,Medium
+Add-on compatibility broken,software,other,Low,Medium
+Administrator access required,software,install,Low,Medium
+Adobe Creative Suite needed,software,install,Low,Medium
+Antivirus impact performance,performance,cpu,Low,Medium
+Antivirus quarantine alert,security,malware,Medium,Medium
+App keeps crashing,performance,slow,Low,Medium
+App stopped syncing,email,sync,Low,Medium
+Application crashes on startup,software,other,High,High
+Application server offline,software,other,High,High
+Application won't install,software,install,Medium,Medium
+Archive old emails,email,storage,Low,Low
+Attachment too large,email,storage,Low,Medium
+Audio device missing,hardware,other,Low,Medium
+Authentication error on WiFi,network,wifi,Medium,High
+Authenticator app issue,security,mfa,Medium,Medium
+Authenticator lost device,security,mfa,High,High
+Auto-reply not sending,email,outlook,Low,Low
+Azure login broken,account,credentials,High,High
+BSOD appearing,hardware,system,High,High
+Background app high cpu,performance,cpu,Low,Medium
+Backup codes exhausted,account,credentials,Low,Medium
+Backup slowing system,performance,cpu,Low,Medium
+Backup verification,general,other,Low,Low
+Bandwidth throttling suspected,network,connectivity,Low,Medium
+Battery draining fast,hardware,battery,Medium,Medium
+Best practice inquiry,general,other,Low,Low
+Biometric authentication failing,security,mfa,Low,Medium
+Blue screen error,hardware,system,High,High
+Broadcast name hidden,network,wifi,Low,Medium
+Browser cache too large,performance,slow,Low,Low
+Browser hijacked,security,malware,Medium,High
+Browser very slow,performance,slow,Low,High
+Cache clearing needed,performance,slow,Low,Low
+Calendar not syncing,email,sync,Low,Medium
+Can I get Visual Studio,software,install,Low,High
+Can I install this application,software,install,Low,High
+Can't access email,email,outlook,High,High
+Can't access remote desktop,network,vpn,High,High
+Can't access resources with account,account,permissions,Medium,High
+Can't access shared drives,network,connectivity,Medium,High
+Can't access web services,network,connectivity,High,High
+Can't access work account,account,locked,High,High
+Can't activate software,software,license,Low,Medium
+Can't add another account,email,outlook,Low,Low
+Can't add work account,account,credentials,Low,Medium
+Can't adjust brightness,hardware,monitor,Low,Low
+Can't change password,account,credentials,Low,Medium
+Can't connect to office WiFi network,network,wifi,Medium,High
+Can't connect to resources,network,connectivity,High,High
+Can't delete emails,email,outlook,Low,Low
+Can't find application,software,other,Low,Low
+Can't find install file,software,install,Low,Medium
+Can't launch application,software,other,Medium,High
+Can't login to my computer,account,locked,Medium,High
+Can't login with special char password,account,credentials,Low,Medium
+Can't modify shared files,account,permissions,Low,Medium
+Can't open attachment safely,security,malware,Low,Medium
+Can't print color,hardware,printer,Low,Low
+Can't print to shared printer,hardware,printer,Medium,Medium
+Can't reach VPN,network,vpn,Medium,High
+Can't reach company intranet,network,connectivity,Medium,High
+Can't receive MFA codes,security,mfa,Medium,High
+Can't register new device for account,account,credentials,Low,Medium
+Can't remember my credentials,account,credentials,Low,Medium
+Can't remove account,account,locked,Low,Low
+Can't reset domain password,account,credentials,Low,Medium
+Can't see available networks,network,wifi,Medium,High
+Can't sign into office 365,account,credentials,High,High
+Can't stay connected to network,network,wifi,Medium,High
+Can't update application,software,update,Low,Medium
+Can't verify SSL certificate,security,security,Low,Medium
+Cannot compose email,email,outlook,Low,Medium
+Cannot repair screen,hardware,monitor,Low,Low
+Cannot send encrypted email,email,security,Low,Medium
+Cartridge empty,hardware,printer,Low,Low
+Categories not syncing,email,sync,Low,Low
+Certificate auth failing,email,security,Medium,High
+Certificate revocation check failed,security,security,Low,Low
+Channel interference on WiFi,network,wifi,Low,Medium
+Code editor recommendation,software,other,Low,Low
+Color codes not visible,email,outlook,Low,Low
+Component failure,hardware,hardware,Medium,High
+Compression utility needed,software,install,Low,Low
+Computer compromised,security,security,High,High
+Computer running slow,performance,slow,Medium,Medium
+Computer too old,hardware,hardware,Low,Low
+Computer won't turn on,hardware,hardware,High,High
+Configuration file missing,software,other,Low,Medium
+Connection to server refused,network,connectivity,High,High
+Contacts disappeared,email,sync,Medium,High
+Containerization platform,software,install,Low,Low
+Cookies taking space,performance,slow,Low,Low
+Copy paste laggy,performance,slow,Low,Low
+Corporate VPN not connecting,network,vpn,High,High
+Cracked display,hardware,monitor,Low,Medium
+Credentials not working,account,credentials,Medium,High
+Critical issue,general,other,Medium,High
+DHCP address not assigned,network,connectivity,High,High
+DNS resolution failing,network,connectivity,High,High
+Data breach suspected,security,breach,High,High
+Data classification question,security,security,Low,Low
+Data recovery needed,hardware,storage,High,High
+Database client needed,software,install,Low,Medium
+Database query slow,performance,slow,Low,Medium
+Database unavailable,network,connectivity,High,High
+Defective equipment,hardware,hardware,Medium,Medium
+Delegation access needed,account,permissions,Low,Medium
+Desktop composition off,performance,slow,Low,Low
+Desktop notification missing,email,outlook,Low,Low
+Developer tools needed,software,install,Low,Medium
+Digital signature issue,email,security,Low,Low
+Disk cleanup help,hardware,storage,Low,Low
+Disk error detected,hardware,storage,High,High
+Disk usage very high,performance,cpu,Medium,High
+Display scaling issues,hardware,monitor,Low,Low
+Distribution list issue,email,sync,Low,Medium
+Docker setup help,software,install,Low,Low
+Docking station not recognized,hardware,other,Low,Medium
+Domain login issue,account,locked,Medium,High
+Duplicate accounts created,account,locked,Low,Medium
+Duplicate emails appearing,email,sync,Low,Medium
+Email asks for credentials,security,phishing,High,High
+Email backup needed,email,storage,Low,Low
+Email client crashed,email,outlook,Low,Medium
+Email encryption needed,email,security,Low,Medium
+Email migration help,email,sync,Low,Medium
+Email not syncing,email,outlook,Medium,High
+Email preview not working,email,outlook,Low,Low
+Email rules not working,email,outlook,Low,Low
+Email won't send,email,outlook,Medium,High
+Employee exit process,account,locked,Low,Low
+Encryption key lost,security,security,High,High
+Encryption key recovery,security,security,High,High
+End of life device,hardware,hardware,Low,Low
+Enterprise account access issue,account,credentials,Medium,High
+Ergonomic equipment request,hardware,other,Low,Low
+Ethernet cable not working,network,ethernet,Medium,High
+Ethernet port not working,network,ethernet,Medium,High
+Everything is slow,performance,slow,Medium,High
+Experiencing issues,general,other,Low,Medium
+Export email needed,email,storage,Low,Low
+External hard drive missing,hardware,storage,Medium,Medium
+FTP client needed,software,install,Low,Low
+Failed login attempts,account,locked,Medium,High
+Fan making noise,hardware,hardware,Low,Medium
+Fans spinning but no display,hardware,hardware,High,High
+File operations slow,performance,slow,Low,Medium
+File permissions wrong,account,permissions,Low,Medium
+File sharing not working,network,connectivity,High,High
+Firewall blocking connection,network,connectivity,High,High
+Firewall blocking legitimate traffic,security,security,Low,Medium
+Flag email not working,email,outlook,Low,Low
+Folder sync stuck,email,sync,Low,Medium
+Forward phishing samples,security,phishing,Low,Low
+Forwarding broken,email,outlook,Low,Medium
+GDPR compliance help,security,security,Low,Low
+Gaming stuttering,performance,slow,Low,Medium
+Gateway IP not responding,network,connectivity,Medium,High
+Gateway unavailable,network,connectivity,High,High
+General IT help needed,general,other,Low,Low
+Git installation help,software,install,Low,Low
+GitHub account integration broken,account,credentials,Low,Low
+Graphics card upgrade,hardware,hardware,Low,Low
+Group membership not updating,account,permissions,Low,Medium
+Guest account enabled by mistake,account,locked,Low,Low
+HDMI cable issue,hardware,monitor,Low,Medium
+HTTPS connection untrusted,security,security,Low,Medium
+Hard drive failing,hardware,storage,High,High
+Hardware security key issue,security,mfa,Low,Medium
+Hardware warranty expired,hardware,hardware,Low,Low
+Headphone jack broken,hardware,other,Low,Low
+Help needed ASAP,general,other,Low,High
+Help with software,software,other,Low,Low
+High CPU usage,performance,cpu,Medium,Medium
+High DPI scaling problem,hardware,monitor,Low,Low
+History needs clearing,email,storage,Low,Low
+How to use this,general,other,Low,Low
+How to use this app,software,other,Low,Low
+I forgot my password,account,credentials,Medium,High
+IDE installation request,software,install,Low,Low
+IMAP folder sync failing,email,sync,Low,Medium
+IP address conflict,network,connectivity,High,High
+Indexing consuming resources,performance,cpu,Low,Medium
+Information request,general,other,Low,Low
+Inherited permissions not working,account,permissions,Low,Low
+Install Python please,software,install,Low,Medium
+Installation blocked by policies,software,install,Low,Medium
+Installation media needed,software,install,Low,Low
+Intermittent internet connectivity,network,connectivity,Medium,High
+Internet is very slow,network,connectivity,Medium,High
+Is this email legitimate,security,phishing,Low,Medium
+Just checking,general,other,Low,Low
+Kerberos ticket invalid,account,credentials,High,High
+Keyboard broken,hardware,keyboard,Low,Low
+LDAP authentication failing,account,locked,Medium,Medium
+Lagging performance,performance,slow,Medium,Medium
+Laptop runs hot,hardware,hardware,Medium,Medium
+Laptop screen broken,hardware,monitor,Medium,Medium
+Laptop screen flickering,hardware,monitor,Low,Medium
+Latency issues on network,network,connectivity,Low,Medium
+Legacy account still active,account,locked,Low,Low
+License cleanup required,software,license,Low,Low
+License key needed,software,install,Low,Medium
+Local account issues,account,credentials,Low,Medium
+Lock screen slow,performance,slow,Low,Low
+Locked out of system,account,locked,Medium,High
+Login page not accepting input,account,credentials,Low,Medium
+Lost important files,hardware,storage,High,High
+Lost my authenticator app,security,mfa,High,High
+MFA code not working,security,mfa,Medium,High
+MFA not sending codes,security,mfa,Medium,High
+MTU size incorrect,network,connectivity,Low,Low
+Machine freezing up,performance,slow,High,High
+Mail not receiving,email,sync,Medium,High
+Mailbox corrupted,email,sync,High,High
+Mailbox storage full,email,storage,Low,Medium
+Manufacturer recall,hardware,hardware,Medium,High
+Mark as unread not working,email,outlook,Low,Low
+Media player installation,software,install,Low,Low
+Memory leak suspected,performance,cpu,Medium,High
+Menu response delayed,performance,slow,Low,Low
+Microphone not working,hardware,other,Low,Medium
+Microsoft Teams account missing,account,credentials,Low,Medium
+Microsoft account linked wrong,account,credentials,Low,Medium
+Missing emails,email,sync,Medium,High
+Mobile email not working,email,sync,Low,High
+Mobile phone won't connect,hardware,mobile,Medium,Medium
+Monitor has dead pixels,hardware,monitor,Low,Low
+Monitor not displaying,hardware,monitor,Medium,Medium
+Monitor refresh rate low,hardware,monitor,Low,Low
+Monitor swap,hardware,monitor,Low,Low
+Mouse movement stuttering,performance,slow,Low,Low
+Mouse stopped working,hardware,mouse,Low,Low
+My WiFi keeps disconnecting,network,wifi,Medium,High
+My account won't unlock,account,locked,Medium,High
+Need Adobe Acrobat,software,install,Low,High
+Need S/MIME setup,email,security,Low,Medium
+Need SQL management studio,software,install,Low,Medium
+Need VM software,software,install,Low,Medium
+Need account migration,account,locked,Low,Medium
+Need adapter cable,hardware,other,Low,Low
+Need additional monitor,hardware,monitor,Low,Low
+Need application reinstall,software,install,Low,Medium
+Need better GPU,hardware,hardware,Low,Low
+Need compliance help,security,security,Low,Low
+Need desk setup,hardware,other,Low,Low
+Need document holder,hardware,other,Low,Low
+Need documentation,general,other,Low,Low
+Need emergency access,account,locked,High,High
+Need file restore,hardware,storage,Medium,High
+Need immediate assistance,general,other,Low,High
+Need license renewal,software,license,Low,Medium
+Need manager approval for account,account,credentials,Low,Low
+Need more processing power,hardware,hardware,Low,Medium
+Need new hardware,hardware,other,Low,Low
+Need new keyboard,hardware,keyboard,Low,Low
+Need new laptop,hardware,hardware,Low,Medium
+Need password reset immediately,account,credentials,High,High
+Need performance tweak,performance,slow,Low,Low
+Need security clearance,security,security,Low,Low
+Need security update,security,security,Low,Medium
+Need specific version,software,install,Low,Low
+Need to backup data,hardware,storage,Low,Medium
+Need to change WiFi password,network,wifi,Low,Low
+Need to close old account,account,locked,Low,Low
+Need to install software,software,install,Medium,High
+Need to regain access,account,locked,Medium,High
+Need to report phishing,security,phishing,Low,Medium
+Need to reset MFA,security,mfa,Medium,High
+Need to reset password,account,credentials,Medium,High
+Need tutorial,general,other,Low,Low
+Need write permissions,account,permissions,Low,Medium
+Neighbor networks interfering,network,wifi,Low,Medium
+Network adapter disabled,network,ethernet,Medium,Medium
+Network adapter driver issue,network,ethernet,Low,Medium
+Network bandwidth limit reached,network,connectivity,Low,Medium
+Network broadcast stopped,network,connectivity,High,High
+Network connection down,network,connectivity,High,High
+Network discovery disabled,network,connectivity,Low,Medium
+Network firewall issue,network,connectivity,High,High
+Network speed degraded,network,connectivity,Low,Medium
+Network speed slow,performance,slow,Low,Medium
+No available disk space,hardware,storage,Low,High
+No network access,network,connectivity,High,High
+Not sure what's wrong,general,other,Low,Low
+Notification not working,email,outlook,Low,Low
+OAuth token expired,email,sync,Low,Medium
+OST file deleted,email,sync,High,High
+OTP not working,account,mfa,Medium,High
+Odd network activity,security,security,Medium,High
+Offboarding assistance,account,locked,Low,Medium
+Office 365 request,software,install,Low,High
+Office macro warning,security,malware,Low,Low
+Old computer replacement,hardware,hardware,Low,Low
+Outlook not working,email,outlook,Medium,High
+Overheating issue,hardware,hardware,Medium,High
+PDF seems dangerous,security,malware,Low,Medium
+PIN reset needed,account,credentials,Low,Medium
+PST export question,email,storage,Low,Low
+PST file issue,email,storage,Low,Medium
+Package manager setup,software,install,Low,Low
+Packet loss on connection,network,connectivity,Low,Medium
+Password contains symbols issue,account,credentials,Low,Low
+Password expired,account,credentials,Medium,High
+Pattern lock forgotten,account,credentials,Low,Medium
+Permission issues after login,account,permissions,Low,Medium
+Ping timeouts on network,network,connectivity,Low,Medium
+Please install Slack,software,install,Medium,Medium
+Plugin not loading,software,other,Low,Medium
+Pop3 configuration wrong,email,sync,Low,Low
+Port replicator failure,hardware,other,Low,Medium
+Portal login failing,account,locked,Medium,High
+Power supply failing,hardware,hardware,High,High
+Preferences corrupted,software,other,Low,Medium
+Previous versions feature,hardware,storage,Low,Low
+Print driver issue,hardware,printer,Low,Medium
+Print queue stuck,hardware,printer,Low,Medium
+Printer is offline,hardware,printer,Medium,Medium
+Printer jam,hardware,printer,Low,Medium
+Printer not responding,hardware,printer,Low,Medium
+Printer settings wrong,hardware,printer,Low,Low
+Privacy policy question,security,security,Low,Low
+Process question,general,other,Low,Low
+Product key invalid,software,license,Low,Medium
+Program keeps freezing,software,other,Medium,High
+Proxy server not responding,network,connectivity,High,High
+QoS settings issue,network,connectivity,Low,Medium
+Quick steps not working,email,outlook,Low,Low
+Quotas exceeded,email,storage,Low,Medium
+RAM upgrade needed,performance,cpu,Low,Medium
+RDP timeout,network,vpn,Medium,Medium
+Ransomware attack,security,ransomware,High,High
+Ransomware recovery,security,ransomware,High,High
+Read receipts not working,email,outlook,Low,Low
+Read-only access issue,account,permissions,Low,Medium
+Recent files not showing,software,other,Low,Low
+Recovery code needed,account,credentials,Low,Medium
+Report suspicious email,security,phishing,Low,Low
+Request MongoDB tools,software,install,Low,Low
+Request cable organizers,hardware,other,Low,Low
+Request mouse replacement,hardware,mouse,Low,Low
+Require more RAM,hardware,memory,Low,Medium
+Response time slow,performance,slow,Low,Medium
+Retention policy question,email,storage,Low,Low
+Router IP address wrong,network,wifi,Low,Medium
+Router keeps rebooting,network,wifi,High,High
+Router won't connect,network,wifi,Medium,High
+SMB connection failed,network,connectivity,Low,Medium
+SMTP server not responding,email,sync,High,High
+SSD full,hardware,storage,Low,Medium
+SSD upgrade requested,hardware,storage,Low,Medium
+SSH client needed,software,install,Low,Low
+SSL certificate warning,security,security,Low,Medium
+SSO not working,account,credentials,Medium,High
+Sandbox quarantine,security,malware,Low,Medium
+Screen flashing,hardware,monitor,Medium,Medium
+Screen refresh slow,performance,slow,Low,Medium
+Search not finding emails,email,sync,Low,Medium
+Security awareness training,security,security,Low,Low
+Server down,network,connectivity,High,High
+Shadow copy restore,hardware,storage,Low,Medium
+Shared mailbox not visible,email,outlook,Low,Medium
+Shortcut not working,software,other,Low,Low
+Should I uninstall first,software,install,Low,Low
+Shutdown hangs,performance,slow,Low,Medium
+Signal strength too weak,network,wifi,Low,Medium
+Signature not appearing,email,outlook,Low,Low
+Software conflicts,software,install,Low,Medium
+Software installation request,software,install,Low,High
+Software license expired,software,license,Low,Medium
+Software training needed,software,other,Low,Low
+Software update available,software,update,Low,Low
+Something is broken,general,other,Low,Medium
+Spam filter too aggressive,email,outlook,Low,Low
+Speaker volume too low,hardware,other,Low,Low
+Standing desk request,hardware,other,Low,Low
+Startup taking forever,performance,slow,Low,Medium
+Strange file appeared,security,malware,Medium,High
+Streaming buffering,performance,slow,Low,Medium
+Stuck on connecting,network,wifi,Medium,High
+Subnet mask configuration error,network,connectivity,Low,Medium
+Suspected malware infection,security,malware,High,High
+Suspicious attachment warning,security,malware,Medium,High
+Suspicious email received,security,phishing,High,High
+Suspicious link in email,security,phishing,Medium,Medium
+System cleanup,software,other,Low,Low
+System laggy today,performance,slow,Medium,Medium
+System optimization,performance,slow,Low,Low
+System sounds slowing down,performance,slow,Low,Low
+System very sluggish,performance,slow,Medium,High
+Tablet screen cracked,hardware,mobile,Low,Low
+Takes too long to boot,performance,slow,Low,Medium
+Task scheduler running heavy tasks,performance,cpu,Low,Low
+Team mailbox access denied,email,outlook,Medium,High
+Temp file cleanup,performance,cpu,Low,Low
+Temporary password expired,account,credentials,High,High
+Terminal emulator request,software,install,Low,Low
+Text editor request,software,install,Low,Low
+Theme loading slow,performance,slow,Low,Low
+Third monitor request,hardware,monitor,Low,Low
+This is urgent,general,other,Low,High
+Too many failed login attempts,account,locked,Low,Medium
+Touchscreen unresponsive,hardware,mobile,Low,Medium
+Trackpad not working,hardware,mouse,Low,Medium
+Two factor authentication not working,security,mfa,Medium,High
+Two factor broken,security,mfa,Medium,High
+Typing delayed,performance,slow,Low,Low
+USB drive not recognized,hardware,storage,Medium,Medium
+USB port not working,hardware,other,Medium,Medium
+Unauthorized access detected,security,security,High,High
+Uninstall not working,software,install,Low,Medium
+Unsafe file warning,security,malware,Low,Low
+Unsure about scam email,security,phishing,Low,Low
+Update installation failed,software,update,Low,Medium
+Update service high usage,performance,cpu,Low,Low
+Upgrade needed,hardware,hardware,Low,Medium
+Urgent account lockout,account,locked,High,High
+User account disabled,account,locked,High,High
+VPN authentication failed,network,vpn,Medium,High
+VPN certificate expired,security,security,Medium,High
+VPN tunnel keeps dropping,network,vpn,Medium,High
+Version compatibility issue,software,install,Low,Medium
+Video playback choppy,performance,slow,Low,Medium
+Virtualization tools,software,install,Low,Low
+Virus detected on machine,security,malware,High,High
+Visual effects disabled,performance,slow,Low,Low
+WPA3 not working,network,wifi,Low,Medium
+Web pages loading slow,performance,slow,Low,Medium
+Webcam not detected,hardware,other,Low,Low
+Website looks fake,security,phishing,Low,Medium
+Weird pop-ups appearing,security,malware,Medium,Medium
+WiFi keeps asking for password,network,wifi,Low,Medium
+WiFi network unavailable,network,wifi,High,High
+WiFi password not working,network,wifi,Medium,Medium
+WiFi signal very weak,network,wifi,Medium,Medium
+Window manager slow,performance,slow,Low,Low
+Windows Defender scan slow,performance,cpu,Low,Medium
+Wireless access point offline,network,wifi,High,High
+Wireless connection drops frequently,network,wifi,Medium,High
+Workstation offline,hardware,other,High,High
+Worried about phishing,security,phishing,Low,Medium
+Wrong version installed,software,install,Low,Medium
+Yubikey not recognized,security,mfa,Low,Medium
+ZIP file won't extract,security,malware,Low,Medium

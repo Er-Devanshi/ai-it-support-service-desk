@@ -16,16 +16,15 @@ sqlalchemy>=2.0.30
 bcrypt>=4.0.0
 pyjwt>=2.8.0
 
-# HTTP client for provider-independent REST APIs (Gemini, OpenAI, Ollama)
-httpx>=0.27.0
+# Numerical computing (for NLP classifier and BM25 calculations)
+numpy>=1.24.0
 
-# Workflow orchestration
+# Workflow orchestration (LangGraph for agent orchestration, not LLM calls)
 langgraph>=0.2.0,<0.3.0
 
 # Testing
 pytest>=8.0.0
 
-# RAG & Vector Database
-chromadb>=1.5.0
-sentence-transformers>=3.0.0
+# Document parsing (for knowledge base ingestion)
 pypdf>=5.0.0
+

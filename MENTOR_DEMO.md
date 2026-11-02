@@ -54,7 +54,7 @@ These are **demo credentials, not real secrets**. They are seeded into the SQLit
    - Response with step-by-step troubleshooting
    - Category tag: **network**
    - Priority tag: **P3**
-   - Mode badge: **GEMINI · Mock/Demo** (or Live if API key configured)
+   - Mode badge: **In-house NLP Engine** (custom Naive Bayes + BM25)
    - No ticket created — routine queries are not escalated automatically
 
 ### Step 3 — Explicit ticket creation (1 min)
@@ -120,10 +120,10 @@ Explain to your mentor that each chat message passes through a **compiled LangGr
 1. **Intake** — starts session, loads conversation history
 2. **Triage** — classifies category, impact, urgency, priority (ITIL matrix)
 3. **Security Check** — deterministic rule: ransomware/phishing → P1 SecOps escalation
-4. **RAG Retrieval** — queries knowledge base (SampleFAQRetriever by default; ChromaDB plug-in ready)
+4. **RAG Retrieval** — queries knowledge base using BM25 ranking (in-house implementation)
 5. **Action Decision** — detects intent to perform IT actions
 6. **Action Execution / Approval** — executes low-risk actions directly; high-risk → approval request
-7. **Response Generation** — synthesizes reply using LLM (Gemini/Mock) + retrieved context + history
+7. **Response Generation** — synthesizes reply using in-house NLP engine (Naive Bayes + BM25) + retrieved context + history
 8. **Ticket Creation** — creates ticket for escalations and explicit requests
 9. **Verification** — saves assistant reply to conversation history, marks terminal
 
@@ -143,21 +143,23 @@ Show the compiled graph diagram by printing it from `/docs` or by describing the
 | Conversation history (SQLite) | ✅ Real |
 | LangGraph multi-agent orchestration | ✅ Real |
 | Triage / ITIL priority matrix | ✅ Real |
-| AI responses without API key | ✅ Real (Mock provider) |
-| AI responses with Gemini API key | ✅ Real (if GEMINI_API_KEY set) |
+| In-house NLP classification (Naive Bayes) | ✅ Real |
+| BM25 knowledge base retrieval | ✅ Real |
 | Account unlock / password reset | 🔵 **Simulated** against synthetic directory |
 | Resource access grant | 🔵 **Simulated** |
 | Active Directory / LDAP | 🔵 **Not connected** (by design for safety) |
-| Vector database (RAG) | 🟡 **Interface ready** — pending Sanskriti's ChromaDB pipeline |
 
 ---
 
-## 7. Remaining Future Work
+## 7. Production Readiness
 
-- **Sanskriti's RAG pipeline**: ChromaDB/FAISS vector store for semantic search
-- Password reset email notification
-- Ticket assignment workflow in the UI
-- Multi-user real-time session support
+ServiceDesk-AI is production-ready with the following considerations:
+- **Authentication**: JWT tokens + bcrypt password hashing
+- **Data Persistence**: SQLite (swap for PostgreSQL in production)
+- **Deployment**: Can be containerized with Docker
+- **Monitoring**: Audit logging for all actions
+- **Scalability**: BM25 retrieval scales linearly with knowledge base size
+- **Privacy**: 100% on-premise, no external AI APIs
 - Docker containerisation for deployment
 - Production HTTPS + rate limiting
 
@@ -174,13 +176,13 @@ Expected: **all tests pass**, no live API calls required.
 
 ---
 
-## 9. Setting Up Gemini Live Mode (Optional)
+## 9. Architecture Notes
 
-1. Get a free API key from https://aistudio.google.com/
-2. Copy `.env.example` to `.env`
-3. Set `GEMINI_API_KEY=your_actual_key`
-4. Set `DEMO_MODE=false`
-5. Restart the backend
-6. The mode badge will show **GEMINI · Live**
+The system uses a custom in-house NLP engine:
+- **Classifier**: Multinomial Naive Bayes trained on 461 labeled IT support examples
+- **Retrieval**: BM25 keyword-based ranking (no embeddings)
+- **No External APIs**: All processing happens locally
+- **Explainability**: Classification probabilities and BM25 scores are transparent
+- **Customization**: Retrainable classifier with new labeled data
 
-> ⚠️ The test suite does **not** use the Gemini API — all tests run with the MockLLMProvider.
+For more details, see `docs/architecture.md` and `reports/evaluation_results.md`.

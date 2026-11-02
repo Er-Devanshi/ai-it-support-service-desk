@@ -1,5 +1,5 @@
 """
-Knowledge base ingestion pipeline for ServiceDesk-AI RAG.
+Knowledge base ingestion pipeline for ServiceDesk-AI RAG using BM25.
 
 Can be run:
 1. Programmatically via `ingest_knowledge_base()`
@@ -16,28 +16,25 @@ from app.config import settings
 from app.utils.logger import logger
 from app.services.rag.document_loader import load_knowledge_base_dir
 from app.services.rag.chunker import DocumentChunker
-from app.services.rag.vector_store import get_vector_store, ChromaVectorStore
-from app.services.rag.embeddings import BaseEmbeddingService, get_embedding_service
+from app.services.nlp.retriever import BM25Retriever
 
 
 def ingest_knowledge_base(
     directory: Optional[Path] = None,
     reset: bool = False,
-    embedding_service: Optional[BaseEmbeddingService] = None,
 ) -> Dict[str, Any]:
     """
-    Ingest IT documents into the ChromaDB vector database.
+    Ingest IT documents into the BM25 index.
     
     Args:
         directory: Directory containing .txt, .md, and .pdf documents (defaults to settings.KNOWLEDGE_BASE_DIR).
-        reset: If True, clears existing vector collection before indexing.
-        embedding_service: Optional custom embedding service.
+        reset: If True, rebuilds the entire index (not used with BM25 but kept for API compatibility).
         
     Returns:
         Summary dict containing document and chunk counts.
     """
     kb_dir = Path(directory or settings.KNOWLEDGE_BASE_DIR)
-    logger.info(f"Starting knowledge base ingestion from: {kb_dir} (reset={reset})")
+    logger.info(f"Starting knowledge base ingestion from: {kb_dir}")
 
     # 1. Load documents
     docs = load_knowledge_base_dir(kb_dir)
@@ -48,6 +45,10 @@ def ingest_knowledge_base(
             "message": f"No supported documents (.txt, .md, .pdf) found in {kb_dir}",
             "documents_loaded": 0,
             "chunks_indexed": 0,
+            "total_in_db": 0,
+            "index_dir": str(kb_dir.parent / "index"),
+            "retriever_type": "BM25",
+            "info": "No documents to index",
         }
 
     # 2. Chunk documents
@@ -59,23 +60,31 @@ def ingest_knowledge_base(
 
     logger.info(f"Generated {len(all_chunks)} chunk(s) from {len(docs)} document(s)")
 
-    # 3. Store in ChromaDB
-    emb_service = embedding_service or get_embedding_service()
-    store = get_vector_store(embedding_service=emb_service)
+    # 3. Build BM25 index
+    retriever = BM25Retriever()
+    retriever.rebuild_from_documents([
+        {
+            "id": chunk.id,
+            "title": chunk.document_title,
+            "content": chunk.text,
+            "source": chunk.source,
+            "metadata": {
+                "chunk_number": chunk.chunk_number,
+                "document_id": chunk.document_id,
+            },
+        }
+        for chunk in all_chunks
+    ])
 
-    if reset:
-        store.reset()
-
-    indexed_count = store.add_chunks(all_chunks)
-
+    index_dir = settings.KNOWLEDGE_BASE_DIR.parent / "index"
     result = {
         "status": "success",
         "documents_loaded": len(docs),
-        "chunks_indexed": indexed_count,
-        "total_in_db": store.count(),
-        "persist_dir": str(store.persist_dir),
-        "collection_name": store.collection_name,
-        "embedding_model": emb_service.model_name,
+        "chunks_indexed": len(all_chunks),
+        "total_in_db": len(all_chunks),
+        "index_dir": str(index_dir),
+        "retriever_type": "BM25 (in-house)",
+        "info": f"BM25 index built with {len(all_chunks)} chunks from {len(docs)} documents",
     }
     logger.info(f"Ingestion complete: {result}")
     return result
@@ -83,34 +92,33 @@ def ingest_knowledge_base(
 
 def main():
     """CLI entrypoint for knowledge base ingestion."""
-    parser = argparse.ArgumentParser(description="Ingest IT support documentation into ChromaDB for ServiceDesk-AI RAG.")
+    parser = argparse.ArgumentParser(description="Ingest IT support documentation into BM25 index for ServiceDesk-AI RAG.")
     parser.add_argument("--dir", type=str, default=None, help="Path to knowledge base directory")
-    parser.add_argument("--reset", action="store_true", help="Clear existing vectors before indexing")
-    parser.add_argument("--mock-embeddings", action="store_true", help="Use deterministic mock embeddings for offline testing")
+    parser.add_argument("--reset", action="store_true", help="Rebuild index (BM25 always rebuilds)")
     args = parser.parse_args()
 
-    custom_emb = get_embedding_service(force_mock=True) if args.mock_embeddings else None
     input_dir = Path(args.dir) if args.dir else None
 
     print("=" * 60)
-    print("ServiceDesk-AI — Knowledge Base Ingestion")
+    print("ServiceDesk-AI — Knowledge Base Ingestion (BM25)")
     print("=" * 60)
 
     try:
         res = ingest_knowledge_base(
             directory=input_dir,
             reset=args.reset,
-            embedding_service=custom_emb,
         )
         print(f"Status:            {res['status']}")
         print(f"Documents Loaded:  {res['documents_loaded']}")
         print(f"Chunks Indexed:    {res['chunks_indexed']}")
-        print(f"Total in Database: {res.get('total_in_db', 0)}")
-        print(f"Persist Directory: {res.get('persist_dir', 'N/A')}")
-        print(f"Embedding Model:   {res.get('embedding_model', 'N/A')}")
+        print(f"Total in Index:    {res.get('total_in_db', 0)}")
+        print(f"Index Directory:   {res.get('index_dir', 'N/A')}")
+        print(f"Retriever Type:    {res.get('retriever_type', 'N/A')}")
         print("=" * 60)
     except Exception as e:
         print(f"Ingestion failed: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

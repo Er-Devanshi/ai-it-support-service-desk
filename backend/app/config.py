@@ -35,21 +35,22 @@ class Settings:
     # In development, allow wildcard if configured or if origins contain '*'
     ALLOW_ALL_ORIGINS: bool = "*" in os.getenv("CORS_ORIGINS", "*")
 
-    # LLM Settings (Provider-independent)
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini").lower()
-    LLM_MODEL: str = os.getenv("LLM_MODEL", os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
+    # LLM Settings (Replaced with in-house NLP engine)
+    # Kept for backward compatibility but not used
+    LLM_PROVIDER: str = "own_engine"
+    LLM_MODEL: str = "in-house_naive_bayes"
+    DEMO_MODE: bool = False  # Always False for own engine
     
-    # Gemini specific
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-
-    # OpenAI specific (future support)
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-    # Ollama specific (future local support)
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
+    # In-house NLP classifier
+    CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
+    
+    # Deprecated (kept for reference only):
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = ""
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = ""
+    OLLAMA_BASE_URL: str = ""
+    OLLAMA_MODEL: str = ""
 
     # Database
     DATABASE_URL: str = os.getenv(

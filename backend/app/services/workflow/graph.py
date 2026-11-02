@@ -678,7 +678,7 @@ def build_servicedesk_graph() -> StateGraph:
 
     # Add Nodes
     builder.add_node("intake", intake_node)
-    builder.add_node("triage", triage_node)
+    builder.add_node("triage_processing", triage_node)
     builder.add_node("security_escalation", security_escalation_node)
     builder.add_node("rag_retrieval", rag_retrieval_node)
     builder.add_node("action_decision", action_decision_node)
@@ -689,10 +689,10 @@ def build_servicedesk_graph() -> StateGraph:
 
     # Add Edges
     builder.add_edge(START, "intake")
-    builder.add_edge("intake", "triage")
+    builder.add_edge("intake", "triage_processing")
 
     builder.add_conditional_edges(
-        "triage",
+        "triage_processing",
         route_after_triage,
         {
             "security_escalation": "security_escalation",

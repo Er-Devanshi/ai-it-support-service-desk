@@ -1,0 +1,130 @@
+text,category,subcategory,impact,urgency
+"My WiFi keeps disconnecting",network,wifi,Medium,High
+"Router won't connect",network,wifi,Medium,High
+"Internet is very slow",network,connectivity,Medium,High
+"Can't reach VPN",network,vpn,Medium,High
+"Network connection down",network,connectivity,High,High
+"Ethernet cable not working",network,ethernet,Medium,High
+"I forgot my password",account,credentials,Medium,High
+"Account is locked",account,locked,Medium,High
+"Can't login to my computer",account,locked,Medium,High
+"Need to reset password",account,credentials,Medium,High
+"Locked out of system",account,locked,Medium,High
+"My account won't unlock",account,locked,Medium,High
+"Two factor authentication not working",security,mfa,Medium,High
+"MFA code not working",security,mfa,Medium,High
+"Authenticator app issue",security,mfa,Medium,Medium
+"Printer is offline",hardware,printer,Medium,Medium
+"Can't print to shared printer",hardware,printer,Medium,Medium
+"Printer not responding",hardware,printer,Low,Medium
+"Print queue stuck",hardware,printer,Low,Medium
+"Monitor not displaying",hardware,monitor,Medium,Medium
+"Keyboard broken",hardware,keyboard,Low,Low
+"Mouse stopped working",hardware,mouse,Low,Low
+"Need to install software",software,install,Medium,High
+"Can I install this application",software,install,Low,High
+"Software installation request",software,install,Low,High
+"Application won't install",software,install,Medium,Medium
+"Email not syncing",email,outlook,Medium,High
+"Outlook not working",email,outlook,Medium,High
+"Mail not receiving",email,sync,Medium,High
+"Email client crashed",email,outlook,Low,Medium
+"Mailbox storage full",email,storage,Low,Medium
+"Computer running slow",performance,slow,Medium,Medium
+"System very sluggish",performance,slow,Medium,High
+"Machine freezing up",performance,slow,High,High
+"Lagging performance",performance,slow,Medium,Medium
+"High CPU usage",performance,cpu,Medium,Medium
+"Can't access shared drive",network,connectivity,Medium,High
+"File share not accessible",network,connectivity,Low,Medium
+"Mapped drive missing",network,connectivity,Low,Medium
+"Can't reach network share",network,connectivity,Medium,High
+"General IT help needed",general,other,Low,Low
+"Not sure what's wrong",general,other,Low,Low
+"Something is broken",general,other,Low,Medium
+"Experiencing issues",general,other,Low,Medium
+"WiFi dropping out frequently",network,wifi,Medium,High
+"Wireless keeps disconnecting",network,wifi,Medium,High
+"Router connection unstable",network,wifi,High,High
+"Intermittent internet",network,connectivity,Medium,High
+"Can't connect to WiFi network",network,wifi,Medium,High
+"Need password reset immediately",account,credentials,High,High
+"Urgent account lockout",account,locked,High,High
+"Can't access work account",account,locked,High,High
+"Credentials not working",account,credentials,Medium,High
+"Failed login attempts",account,locked,Medium,High
+"MFA not sending codes",security,mfa,Medium,High
+"Two factor broken",security,mfa,Medium,High
+"Printer jam",hardware,printer,Low,Medium
+"Cartridge empty",hardware,printer,Low,Low
+"Print driver issue",hardware,printer,Low,Medium
+"Please install Slack",software,install,Medium,Medium
+"Need Adobe Acrobat",software,install,Low,High
+"Install Python please",software,install,Low,Medium
+"Can I get Visual Studio",software,install,Low,High
+"License key needed",software,install,Low,Medium
+"Email won't send",email,outlook,Medium,High
+"Attachment too large",email,storage,Low,Medium
+"Signature not appearing",email,outlook,Low,Low
+"Read receipts not working",email,outlook,Low,Low
+"Distribution list issue",email,sync,Low,Medium
+"System laggy today",performance,slow,Medium,Medium
+"Everything is slow",performance,slow,Medium,High
+"App keeps crashing",performance,slow,Low,Medium
+"Takes too long to boot",performance,slow,Low,Medium
+"Battery draining fast",hardware,battery,Medium,Medium
+"Laptop runs hot",hardware,hardware,Medium,Medium
+"Blue screen error",performance,system,High,High
+"BSOD appearing",performance,system,High,High
+"Screen flashing",hardware,monitor,Medium,Medium
+"Can't reach SQL server",network,connectivity,High,High
+"Network timeout errors",network,connectivity,Medium,High
+"RDP connection failing",network,vpn,High,High
+"VPN disconnects",network,vpn,Medium,High
+"Portal login failing",account,locked,Medium,High
+"SSO not working",account,credentials,Medium,High
+"LDAP sync issue",account,locked,Low,Medium
+"Domain controller issue",network,connectivity,High,High
+"Can't print color",hardware,printer,Low,Low
+"Printer settings wrong",hardware,printer,Low,Low
+"Mobile phone won't connect",hardware,mobile,Medium,Medium
+"Tablet screen cracked",hardware,mobile,Low,Low
+"USB drive not recognized",hardware,storage,Medium,Medium
+"External hard drive missing",hardware,storage,Medium,Medium
+"SSD full",hardware,storage,Low,Medium
+"No available disk space",hardware,storage,Low,High
+"Permission denied on file",account,permissions,Medium,Medium
+"Can't access shared folder",network,connectivity,Medium,High
+"File server down",network,connectivity,High,High
+"Backup not running",hardware,storage,Low,High
+"Need new hardware",hardware,other,Low,Low
+"Computer too old",hardware,hardware,Low,Low
+"Upgrade needed",hardware,hardware,Low,Medium
+"Require more RAM",hardware,memory,Low,Medium
+"This is urgent",general,other,Low,High
+"Help needed ASAP",general,other,Low,High
+"Need immediate assistance",general,other,Low,High
+"Critical issue",general,other,Medium,High
+"Server down",network,connectivity,High,High
+"Application server offline",software,other,High,High
+"Database unavailable",network,connectivity,High,High
+"Can't connect to resources",network,connectivity,High,High
+"No network access",network,connectivity,High,High
+"Workstation offline",hardware,other,High,High
+"Suspected malware infection",security,malware,High,High
+"Computer compromised",security,security,High,High
+"Ransomware attack",security,ransomware,High,High
+"Suspicious email received",security,phishing,High,High
+"Data breach suspected",security,breach,High,High
+"Unauthorized access detected",security,security,High,High
+"Strange file appeared",security,malware,Medium,High
+"Odd network activity",security,security,Medium,High
+"Browser hijacked",security,malware,Medium,High
+"Weird pop-ups appearing",security,malware,Medium,Medium
+"Website looks fake",security,phishing,Low,Medium
+"Suspicious link in email",security,phishing,Medium,Medium
+"Is this email legitimate",security,phishing,Low,Medium
+"Backup verification",general,other,Low,Low
+"Just checking",general,other,Low,Low
+"How to use this",general,other,Low,Low
+"Information request",general,other,Low,Low

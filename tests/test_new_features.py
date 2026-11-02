@@ -2,14 +2,13 @@
 Tests for newly implemented features:
   - Chat-to-ticket integration (explicit request + escalation)
   - Persistent conversation history (save & retrieve)
-  - Correct LLM provider / mode reporting
+  - In-house NLP engine mode reporting
   - Duplicate ticket prevention within a single workflow run
 """
 
 import pytest
 from app.services.conversation_service import save_message, get_history, format_history_for_llm
 from app.services.workflow.graph import run_servicedesk_workflow, reset_workflow_graph
-from app.services.llm.mock_provider import MockLLMProvider
 from app.config import settings
 
 
@@ -139,29 +138,23 @@ def test_chat_no_duplicate_ticket_same_workflow(client):
 # LLM mode / provider reporting
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_mock_provider_reports_mock_mode():
-    """MockLLMProvider.generate returns is_mock=True."""
-    provider = MockLLMProvider()
-    resp = provider.generate("How do I fix slow performance?")
-    assert resp.is_mock is True
-    assert resp.provider == "mock"
 
-
-def test_chat_response_mode_is_not_live_in_demo(client):
-    """In DEMO_MODE the mode field must not be 'live'."""
+def test_chat_response_mode_is_own_engine(client):
+    """In own-engine mode the mode field must indicate in-house NLP."""
     res = client.post("/api/chat", json={"message": "something very unusual happened"})
     assert res.status_code == 200
     data = res.json()
-    # In demo/mock mode, mode should never claim 'live' (live = real LLM)
-    assert data.get("mode") != "live", f"mode should not be 'live' in demo mode, got: {data.get('mode')}"
+    # With in-house NLP, mode should indicate own_engine
+    assert data.get("mode") == "own_engine", f"mode should be 'own_engine', got: {data.get('mode')}"
 
 
-def test_health_endpoint_reports_mode(client):
-    """Health endpoint exposes LLM mode information."""
+def test_health_endpoint_reports_own_engine(client):
+    """Health endpoint reports in-house NLP engine instead of external LLM."""
     res = client.get("/api/health")
     assert res.status_code == 200
     data = res.json()
     assert "mode" in data
-    assert "llm_provider" in data
-    # In test/demo mode the health endpoint should indicate mock/demo
-    assert data["mode"] in ("mock/demo", "live")
+    assert data["mode"] == "own_engine"
+    assert "engine" in data
+    assert data["engine"] == "in-house_nlp"
+

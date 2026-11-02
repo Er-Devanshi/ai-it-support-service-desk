@@ -1,0 +1,248 @@
+[
+  {
+    "query": "How do I reset my password?",
+    "expected_categories": ["account"],
+    "expected_sources": ["account-related documents"],
+    "description": "Common account credential reset query"
+  },
+  {
+    "query": "My WiFi is not connecting",
+    "expected_categories": ["network"],
+    "expected_sources": ["network-related documents"],
+    "description": "Network connectivity troubleshooting"
+  },
+  {
+    "query": "Printer is offline and not responding",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["hardware-related documents"],
+    "description": "Hardware device not accessible"
+  },
+  {
+    "query": "Can I install Microsoft Office?",
+    "expected_categories": ["software"],
+    "expected_sources": ["software installation documents"],
+    "description": "Software installation request"
+  },
+  {
+    "query": "Email not syncing on Outlook",
+    "expected_categories": ["email"],
+    "expected_sources": ["email-related documents"],
+    "description": "Email synchronization issue"
+  },
+  {
+    "query": "Computer running very slow",
+    "expected_categories": ["performance"],
+    "expected_sources": ["performance troubleshooting documents"],
+    "description": "System performance degradation"
+  },
+  {
+    "query": "VPN keeps disconnecting from corporate network",
+    "expected_categories": ["network"],
+    "expected_sources": ["VPN guides"],
+    "description": "VPN stability issue"
+  },
+  {
+    "query": "Suspicious email with suspicious attachment",
+    "expected_categories": ["security"],
+    "expected_sources": ["security and phishing documents"],
+    "description": "Security threat detection"
+  },
+  {
+    "query": "Can't login to my work account",
+    "expected_categories": ["account"],
+    "expected_sources": ["account access documents"],
+    "description": "Account access failure"
+  },
+  {
+    "query": "Keyboard and mouse not working",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["hardware troubleshooting"],
+    "description": "Multiple hardware devices offline"
+  },
+  {
+    "query": "Need to access shared network folder",
+    "expected_categories": ["network"],
+    "expected_sources": ["network share documentation"],
+    "description": "Network resource access"
+  },
+  {
+    "query": "Software license expired",
+    "expected_categories": ["software"],
+    "expected_sources": ["software license documents"],
+    "description": "License management issue"
+  },
+  {
+    "query": "Two-factor authentication not working",
+    "expected_categories": ["security"],
+    "expected_sources": ["MFA and security guides"],
+    "description": "Multi-factor authentication failure"
+  },
+  {
+    "query": "Monitor display shows strange colors",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["monitor troubleshooting"],
+    "description": "Display output issue"
+  },
+  {
+    "query": "Cannot send emails",
+    "expected_categories": ["email"],
+    "expected_sources": ["email configuration docs"],
+    "description": "Email transmission failure"
+  },
+  {
+    "query": "Application crashes every time I open it",
+    "expected_categories": ["software"],
+    "expected_sources": ["software troubleshooting"],
+    "description": "Application stability issue"
+  },
+  {
+    "query": "Hard drive full warning",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["storage management docs"],
+    "description": "Storage capacity issue"
+  },
+  {
+    "query": "Can't connect to the company VPN from home",
+    "expected_categories": ["network"],
+    "expected_sources": ["remote access guides"],
+    "description": "Remote VPN connectivity"
+  },
+  {
+    "query": "Files not showing in shared drive",
+    "expected_categories": ["network"],
+    "expected_sources": ["file sharing docs"],
+    "description": "Network resource visibility"
+  },
+  {
+    "query": "System crashed with blue screen",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["system error documents"],
+    "description": "Critical system failure"
+  },
+  {
+    "query": "Browser is very slow and unresponsive",
+    "expected_categories": ["performance"],
+    "expected_sources": ["performance tuning guides"],
+    "description": "Application performance"
+  },
+  {
+    "query": "Can't install required software",
+    "expected_categories": ["software"],
+    "expected_sources": ["software installation help"],
+    "description": "Installation failure"
+  },
+  {
+    "query": "Printer paper jam",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["printer maintenance"],
+    "description": "Printer hardware issue"
+  },
+  {
+    "query": "Need to verify if email is legitimate",
+    "expected_categories": ["security"],
+    "expected_sources": ["phishing detection guides"],
+    "description": "Email verification request"
+  },
+  {
+    "query": "Account locked out after failed attempts",
+    "expected_categories": ["account"],
+    "expected_sources": ["account security docs"],
+    "description": "Account lockout after attempts"
+  },
+  {
+    "query": "Can't reach SQL database server",
+    "expected_categories": ["network"],
+    "expected_sources": ["server connectivity docs"],
+    "description": "Server connectivity failure"
+  },
+  {
+    "query": "Software update keeps failing",
+    "expected_categories": ["software"],
+    "expected_sources": ["software update documentation"],
+    "description": "Update process failure"
+  },
+  {
+    "query": "Network connection intermittent and unreliable",
+    "expected_categories": ["network"],
+    "expected_sources": ["network stability guides"],
+    "description": "Intermittent connectivity"
+  },
+  {
+    "query": "Mailbox running out of storage",
+    "expected_categories": ["email"],
+    "expected_sources": ["email storage management"],
+    "description": "Email quota issue"
+  },
+  {
+    "query": "Computer won't turn on",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["power on troubleshooting"],
+    "description": "Device won't start"
+  },
+  {
+    "query": "VPN authentication fails with error",
+    "expected_categories": ["network"],
+    "expected_sources": ["VPN security guides"],
+    "description": "VPN authentication error"
+  },
+  {
+    "query": "High CPU usage by unknown process",
+    "expected_categories": ["performance"],
+    "expected_sources": ["process management guides"],
+    "description": "Resource utilization issue"
+  },
+  {
+    "query": "Can't access admin features",
+    "expected_categories": ["account"],
+    "expected_sources": ["permissions and access control"],
+    "description": "Administrator access denied"
+  },
+  {
+    "query": "Webcam or microphone not detected",
+    "expected_categories": ["hardware"],
+    "expected_sources": ["device driver documentation"],
+    "description": "Peripheral device detection"
+  },
+  {
+    "query": "Document signing required but not working",
+    "expected_categories": ["software"],
+    "expected_sources": ["document tools documentation"],
+    "description": "Digital signature issue"
+  },
+  {
+    "query": "Mobile device won't sync with computer",
+    "expected_categories": ["network"],
+    "expected_sources": ["device synchronization guides"],
+    "description": "Device sync failure"
+  },
+  {
+    "query": "Password never received in email",
+    "expected_categories": ["account"],
+    "expected_sources": ["account recovery procedures"],
+    "description": "Password reset email issue"
+  },
+  {
+    "query": "Suspicious activity on account detected",
+    "expected_categories": ["security"],
+    "expected_sources": ["account security alerts"],
+    "description": "Account compromise detection"
+  },
+  {
+    "query": "Can't download files larger than 25MB",
+    "expected_categories": ["email"],
+    "expected_sources": ["email attachment limits"],
+    "description": "Attachment size restriction"
+  },
+  {
+    "query": "Something is broken and urgent",
+    "expected_categories": ["general"],
+    "expected_sources": ["escalation procedures"],
+    "description": "Urgent unspecified issue"
+  },
+  {
+    "query": "How to set up my new work device?",
+    "expected_categories": ["general"],
+    "expected_sources": ["device setup guides"],
+    "description": "Device provisioning request"
+  }
+]

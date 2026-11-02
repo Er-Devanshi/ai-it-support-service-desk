@@ -56,15 +56,15 @@ ServiceDesk-AI addresses this by providing an intelligent first-line support age
 | Layer | Technology | Notes |
 |---|---|---|
 | Backend | Python 3.11+, FastAPI, Uvicorn | Pure Python — no external AI services |
-| AI/NLP | **Custom engine** (Naive Bayes + BM25) | Written from scratch, no sklearn/transformers |
+| AI/NLP | **Custom engine** (Naive Bayes + BM25) | Written from scratch, 100% Python + NumPy |
 | Numerical Computation | NumPy | For classifier matrix operations and BM25 scoring |
-| Workflow Orchestration | LangGraph 1.x | Multi-agent flow; NOT for LLM API calls |
+| Workflow Orchestration | LangGraph 1.x | Multi-agent flow; triage, retrieval, response generation |
 | Data Validation | Pydantic v2 | Schema validation only |
 | Database | SQLAlchemy 2.x + SQLite | No external DB services |
 | Authentication | PyJWT + bcrypt | Secure tokens + password hashing |
 | Frontend | HTML5, CSS3, Vanilla JavaScript | No framework bloat |
-| Testing | pytest + FastAPI TestClient | All tests run offline (no mocked APIs) |
-| **Intentionally Excluded** | Transformers, ChromaDB, sentence-transformers, google-generativeai, openai, ollama, scikit-learn, nltk | Zero external AI/ML dependencies
+| Testing | pytest + FastAPI TestClient | All tests run offline (no APIs) |
+| **Intentionally Excluded** | Transformers, ChromaDB, sentence-transformers, google-generativeai, openai, ollama, scikit-learn, nltk, FAISS | Zero external AI/ML dependencies
 
 ---
 

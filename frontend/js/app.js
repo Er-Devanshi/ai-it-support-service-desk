@@ -276,9 +276,8 @@ async function checkHealth() {
     const dot = $("navStatusDot");
     dot.className = "status-dot online";
     $("navStatusText").textContent = "API Online";
-    const prov = (d.llm_provider || "AI").toUpperCase();
-    const mock = d.mode === "mock/demo" || d.mode === "mock";
-    $("llmBadgeText").textContent = mock ? `${prov} · Mock` : `${prov} · Live`;
+    const engine = (d.engine || "in-house").toUpperCase();
+    $("llmBadgeText").textContent = `${engine} NLP Engine`;
   } catch(_) {
     $("navStatusDot").className = "status-dot offline";
     $("navStatusText").textContent = "API Offline";

@@ -1,9 +1,13 @@
 # ServiceDesk-AI
 
-> **Status: Phase 2 — Autonomous Multi-Agent IT Operations (Under Development)**
+> **Status: Phase 2 — Autonomous Multi-Agent IT Operations with In-House NLP Engine**
 
-An AI-powered IT Support Desk built as a college mini-project.  
-ServiceDesk-AI provides a conversational interface backed by LangGraph multi-agent orchestration, Google Gemini LLM integration, RAG knowledge retrieval, JWT authentication, ticket management, and a human-in-the-loop approval system.
+An AI-powered IT Support Desk built as a college mini-project with NO external AI APIs.  
+ServiceDesk-AI provides a conversational interface backed by:
+- **LangGraph** multi-agent orchestration
+- **Custom NLP engine** (Naive Bayes classifier + BM25 retrieval) — no external LLMs
+- **In-house knowledge retrieval** (BM25 ranking, no embeddings or vector DBs)
+- JWT authentication, ticket management, and human-in-the-loop approvals
 
 ---
 
@@ -12,9 +16,9 @@ ServiceDesk-AI provides a conversational interface backed by LangGraph multi-age
 IT support desks are overwhelmed with repetitive routine queries — password resets, VPN issues, printer problems — that consume significant technician time. Employees often wait hours for resolvable problems.
 
 ServiceDesk-AI addresses this by providing an intelligent first-line support agent that:
-- Understands natural language IT problems
+- Understands natural language IT problems via custom **Naive Bayes classifier**
 - Applies ITIL-compliant triage and priority classification
-- Searches an organisational IT knowledge base (RAG)
+- Searches organizational IT knowledge base using **in-house BM25 retrieval** (no external embeddings)
 - Creates and tracks support tickets automatically
 - Escalates security incidents and unresolvable issues to human technicians
 - Enforces permission boundaries and approval workflows
@@ -23,41 +27,44 @@ ServiceDesk-AI addresses this by providing an intelligent first-line support age
 
 ## Current Features (Phase 2)
 
-| Feature | Status |
-|---|---|
-| FastAPI backend with 7 REST API routers | ✅ Working |
-| LangGraph 9-node multi-agent workflow | ✅ Working |
-| JWT authentication + RBAC (3 roles) | ✅ Working |
-| AI triage with ITIL priority matrix | ✅ Working |
-| Chat-to-ticket integration (SQLite) | ✅ Working |
-| Persistent conversation history (SQLite) | ✅ Working |
-| Human-in-the-loop approval workflow | ✅ Working |
-| Simulated IT action registry (5 actions) | ✅ Working |
-| Gemini / OpenAI / Ollama / Mock LLM | ✅ Working |
-| RAG retrieval interface (plug-in contract) | ✅ Interface ready |
-| Audit logging | ✅ Working |
-| Login modal + auth frontend | ✅ Working |
-| Ticket / approval info panel (frontend) | ✅ Working |
-| 40+ automated tests (no live API required) | ✅ Passing |
-| ChromaDB / FAISS vector store | ⏳ Pending (Sanskriti Agarwal) |
+| Feature | Status | Implementation |
+|---|---|---|
+| FastAPI backend with 7 REST API routers | ✅ Working | Native Python/FastAPI |
+| LangGraph 9-node multi-agent workflow | ✅ Working | Orchestration only |
+| JWT authentication + RBAC (3 roles) | ✅ Working | PyJWT + bcrypt |
+| AI triage with ITIL priority matrix | ✅ Working | **Naive Bayes classifier** |
+| Chat-to-ticket integration (SQLite) | ✅ Working | SQLAlchemy ORM |
+| Persistent conversation history (SQLite) | ✅ Working | SQLAlchemy |
+| Human-in-the-loop approval workflow | ✅ Working | Native Python |
+| Simulated IT action registry (5 actions) | ✅ Working | Native Python |
+| **In-house NLP engine** | ✅ Working | **No external APIs/models** |
+| — Multinomial Naive Bayes (unigrams + bigrams) | ✅ Working | NumPy + Python stdlib |
+| — BM25 retrieval (k1=1.5, b=0.75) | ✅ Working | NumPy + JSON index |
+| — Extractive response builder | ✅ Working | No hallucination |
+| — Slot-filling (category-specific info) | ✅ Working | Rule-based |
+| — Impact/urgency scoring | ✅ Working | Cue-word detection |
+| RAG retrieval (pluggable interface) | ✅ Working | **BM25 backend** |
+| Audit logging | ✅ Working | SQLAlchemy |
+| Login modal + auth frontend | ✅ Working | HTML5/CSS3/JS |
+| Ticket / approval info panel (frontend) | ✅ Working | Vanilla JS |
+| 50+ automated tests (no external APIs) | ✅ Passing | pytest |
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Backend | Python 3.11+, FastAPI 0.115+, Uvicorn |
-| AI Orchestration | LangGraph 1.x |
-| LLM Providers | Google Gemini (primary), OpenAI, Ollama, Mock |
-| Data Validation | Pydantic v2 |
-| Database | SQLAlchemy 2.x + SQLite |
-| Authentication | PyJWT + bcrypt |
-| HTTP Client | httpx |
-| Frontend | HTML5, CSS3, Vanilla JavaScript |
-| Testing | pytest + FastAPI TestClient |
-| Knowledge Base (Phase 2) | Plain-text FAQ (RAG interface ready) |
-| Vector DB (Phase 3) | ChromaDB / FAISS (planned — Sanskriti Agarwal) |
+| Layer | Technology | Notes |
+|---|---|---|
+| Backend | Python 3.11+, FastAPI, Uvicorn | Pure Python — no external AI services |
+| AI/NLP | **Custom engine** (Naive Bayes + BM25) | Written from scratch, no sklearn/transformers |
+| Numerical Computation | NumPy | For classifier matrix operations and BM25 scoring |
+| Workflow Orchestration | LangGraph 1.x | Multi-agent flow; NOT for LLM API calls |
+| Data Validation | Pydantic v2 | Schema validation only |
+| Database | SQLAlchemy 2.x + SQLite | No external DB services |
+| Authentication | PyJWT + bcrypt | Secure tokens + password hashing |
+| Frontend | HTML5, CSS3, Vanilla JavaScript | No framework bloat |
+| Testing | pytest + FastAPI TestClient | All tests run offline (no mocked APIs) |
+| **Intentionally Excluded** | Transformers, ChromaDB, sentence-transformers, google-generativeai, openai, ollama, scikit-learn, nltk | Zero external AI/ML dependencies
 
 ---
 

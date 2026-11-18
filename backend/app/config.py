@@ -35,22 +35,8 @@ class Settings:
     # In development, allow wildcard if configured or if origins contain '*'
     ALLOW_ALL_ORIGINS: bool = "*" in os.getenv("CORS_ORIGINS", "*")
 
-    # LLM Settings (Replaced with in-house NLP engine)
-    # Kept for backward compatibility but not used
-    LLM_PROVIDER: str = "own_engine"
-    LLM_MODEL: str = "in-house_naive_bayes"
-    DEMO_MODE: bool = False  # Always False for own engine
-    
-    # In-house NLP classifier
+    # In-house NLP Configuration
     CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
-    
-    # Deprecated (kept for reference only):
-    GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = ""
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = ""
-    OLLAMA_BASE_URL: str = ""
-    OLLAMA_MODEL: str = ""
 
     # Database
     DATABASE_URL: str = os.getenv(
@@ -63,19 +49,13 @@ class Settings:
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", "120"))
 
-    # RAG & Vector Database settings
+    # RAG & Knowledge Base settings
     KNOWLEDGE_BASE_DIR: Path = Path(os.getenv("KNOWLEDGE_BASE_DIR", str(BASE_DIR / "data" / "knowledge_base")))
-    CHROMA_PERSIST_DIR: Path = Path(os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "data" / "chroma_db")))
-    CHROMA_COLLECTION_NAME: str = os.getenv("CHROMA_COLLECTION_NAME", "servicedesk_knowledge_base")
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     RAG_TOP_K: int = int(os.getenv("RAG_TOP_K", "4"))
     RAG_RELEVANCE_THRESHOLD: float = float(os.getenv("RAG_RELEVANCE_THRESHOLD", "0.30"))
     RAG_CHUNK_SIZE: int = int(os.getenv("RAG_CHUNK_SIZE", "600"))
     RAG_CHUNK_OVERLAP: int = int(os.getenv("RAG_CHUNK_OVERLAP", "80"))
     RAG_ENABLED: bool = os.getenv("RAG_ENABLED", "true").lower() in ("true", "1", "yes")
-
-    # Demo / Mock mode override
-    DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
 
 
 settings = Settings()

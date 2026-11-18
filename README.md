@@ -100,7 +100,7 @@ ai-it-support-service-desk/
 │   │   │   ├── approval_service.py Human-in-the-loop approvals
 │   │   │   ├── audit_service.py    Audit event persistence
 │   │   │   ├── triage_service.py   AI triage + ITIL priority matrix
-│   │   │   ├── llm/                Provider abstraction (Gemini/OpenAI/Ollama/Mock)
+│   │   │   ├── nlp/                In-house NLP engine (Naive Bayes + BM25)
 │   │   │   ├── rag/                RAG retrieval interface contract
 │   │   │   ├── actions/            Simulated IT action registry
 │   │   │   └── workflow/           LangGraph StateGraph (9 nodes)
@@ -161,21 +161,10 @@ Key settings in `.env`:
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `gemini` | Active LLM: `gemini`, `mock`, `openai`, `ollama` |
-| `DEMO_MODE` | `false` | Set `true` to always use mock responses |
-| `GEMINI_API_KEY` | _(empty)_ | Your Google AI Studio key (falls back to mock if unset) |
+| `CLASSIFIER_CONFIDENCE_THRESHOLD` | `0.5` | Confidence threshold for escalation (0.0-1.0) |
 | `DATABASE_URL` | SQLite | Path to the SQLite database file |
 | `JWT_SECRET_KEY` | dev default | Change in production |
 | `RAG_ENABLED` | `true` | Set `false` to disable knowledge base retrieval |
-
-### Gemini API Setup (optional)
-
-1. Visit https://aistudio.google.com/ and create a free API key
-2. Add to `.env`: `GEMINI_API_KEY=AIza...`
-3. Set `DEMO_MODE=false`
-4. Restart the backend
-
-Without a key, the system runs in **Mock/Demo mode** — fully functional for testing and demonstration.
 
 ---
 
@@ -222,7 +211,7 @@ The login modal will appear. Use any of the demo accounts.
 python -m pytest tests/ -v
 ```
 
-All tests run **without a live API key** using the MockLLMProvider and in-memory SQLite.
+All tests run **without external API calls** using the in-house NLP engine and in-memory SQLite.
 
 ---
 
@@ -261,12 +250,12 @@ To plug in your ChromaDB/FAISS implementation:
 ```python
 from app.services.rag.retrieval_interface import register_custom_retriever, BaseRetriever
 
-class MyChromaRetriever(BaseRetriever):
+class MyCustomRetriever(BaseRetriever):
     def retrieve(self, query, context=None, top_k=3):
-        # your ChromaDB implementation here
+        # your custom retrieval logic here
         ...
 
-register_custom_retriever(MyChromaRetriever())
+register_custom_retriever(MyCustomRetriever())
 ```
 
 Call `register_custom_retriever()` at application startup (e.g. in `main.py`'s lifespan handler).
@@ -281,14 +270,12 @@ To disable retrieval: set `RAG_ENABLED=false` in `.env`.
 - Conversation history is loaded per-request (no real-time streaming).
 - No summarisation of long conversation history yet.
 - JWT is stored in `sessionStorage` — cleared when the browser tab closes.
-- The vector database (ChromaDB/FAISS) implementation is pending and will be delivered by a separate team member.
 - Not production-ready: no HTTPS, no rate limiting, no containerisation.
 
 ---
 
 ## Future Scope
 
-- **Sanskriti's RAG pipeline**: ChromaDB/FAISS for semantic knowledge search
 - Password reset email notifications
 - Docker + docker-compose for deployment
 - CI/CD with GitHub Actions

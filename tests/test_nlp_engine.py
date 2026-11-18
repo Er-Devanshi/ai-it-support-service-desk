@@ -110,6 +110,38 @@ class TestTokenizer:
         assert "world" in vocab
         assert "test" in vocab
 
+    def test_tokenize_normalizes_wifi_variants(self):
+        """Test that Wi-Fi, wi fi, and WiFi all normalize to wifi."""
+        # Test "Wi-Fi" hyphenated form
+        tokens1 = tokenize("Wi-Fi", remove_stopwords=False, stem=False)
+        assert tokens1 == ["wifi"], f"Expected ['wifi'], got {tokens1}"
+        
+        # Test "wi fi" spaced form
+        tokens2 = tokenize("wi fi", remove_stopwords=False, stem=False)
+        assert tokens2 == ["wifi"], f"Expected ['wifi'], got {tokens2}"
+        
+        # Test "WiFi" camelcase form (lowercase becomes "wifi")
+        tokens3 = tokenize("WiFi", remove_stopwords=False, stem=False)
+        assert tokens3 == ["wifi"], f"Expected ['wifi'], got {tokens3}"
+
+    def test_tokenize_normalizes_email_and_login(self):
+        """Test that e-mail/e mail and log-in/log in normalize correctly."""
+        # Test "e-mail" hyphenated form
+        tokens1 = tokenize("e-mail", remove_stopwords=False, stem=False)
+        assert tokens1 == ["email"], f"Expected ['email'], got {tokens1}"
+        
+        # Test "e mail" spaced form
+        tokens2 = tokenize("e mail", remove_stopwords=False, stem=False)
+        assert tokens2 == ["email"], f"Expected ['email'], got {tokens2}"
+        
+        # Test "log-in" hyphenated form
+        tokens3 = tokenize("log-in", remove_stopwords=False, stem=False)
+        assert tokens3 == ["login"], f"Expected ['login'], got {tokens3}"
+        
+        # Test "log in" spaced form
+        tokens4 = tokenize("log in", remove_stopwords=False, stem=False)
+        assert tokens4 == ["login"], f"Expected ['login'], got {tokens4}"
+
 
 # ============================================================================
 # 2. Naive Bayes Classifier Tests

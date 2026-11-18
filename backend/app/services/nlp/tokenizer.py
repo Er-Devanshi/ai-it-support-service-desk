@@ -31,6 +31,17 @@ SUFFIX_RULES = [
     ("ing", ""),       # printing -> print
 ]
 
+# Text normalization rules: regex patterns to standardize common variations
+NORMALIZE_RULES = [
+    (r"wi-fi", "wifi"),          # wi-fi -> wifi
+    (r"wi\s+fi", "wifi"),        # wi fi -> wifi
+    (r"wifi", "wifi"),           # WiFi -> wifi (handled by lowercase)
+    (r"e-mail", "email"),        # e-mail -> email
+    (r"e\s+mail", "email"),      # e mail -> email
+    (r"log-in", "login"),        # log-in -> login
+    (r"log\s+in", "login"),      # log in -> login
+]
+
 
 def simple_stem(word: str) -> str:
     """
@@ -41,6 +52,22 @@ def simple_stem(word: str) -> str:
         if word.endswith(suffix):
             return word[:-len(suffix)] + replacement
     return word
+
+
+def normalize_text(text: str) -> str:
+    """
+    Normalize text by applying substitution rules.
+    Handles variations like: wi-fi/wi fi/WiFi -> wifi, e-mail/e mail -> email, etc.
+    
+    Args:
+        text: Input text
+    
+    Returns:
+        Normalized text
+    """
+    for pattern, replacement in NORMALIZE_RULES:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    return text
 
 
 def tokenize(text: str, remove_stopwords: bool = True, stem: bool = True) -> List[str]:
@@ -57,6 +84,9 @@ def tokenize(text: str, remove_stopwords: bool = True, stem: bool = True) -> Lis
     """
     # Lowercase
     text = text.lower()
+    
+    # Normalize text (e.g., wi-fi -> wifi, e-mail -> email, log-in -> login)
+    text = normalize_text(text)
     
     # Split on non-alphanumeric (keep word chars and hyphen)
     tokens = re.findall(r"\b\w+(?:-\w+)?\b", text)

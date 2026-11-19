@@ -142,6 +142,34 @@ class TestTokenizer:
         tokens4 = tokenize("log in", remove_stopwords=False, stem=False)
         assert tokens4 == ["login"], f"Expected ['login'], got {tokens4}"
 
+    def test_normalize_text_does_not_corrupt_unrelated_words(self):
+        """Test that normalize_text does not corrupt words containing 'mail', 'in', 'fi'."""
+        from app.services.nlp.tokenizer import normalize_text
+        
+        # Test "mail" in "receive the mail" - should NOT become "receivethemail"
+        text1 = "I did not receive the mail"
+        normalized1 = normalize_text(text1)
+        assert normalized1 == "I did not receive the mail", \
+            f"Expected 'I did not receive the mail', got '{normalized1}'"
+        
+        # Test "mail" in "resend some mail" - should NOT become "somemail"
+        text2 = "resend some mail"
+        normalized2 = normalize_text(text2)
+        assert normalized2 == "resend some mail", \
+            f"Expected 'resend some mail', got '{normalized2}'"
+        
+        # Test "mail" in "have mail problems" - should NOT become "havemail"
+        text3 = "I have mail problems"
+        normalized3 = normalize_text(text3)
+        assert normalized3 == "I have mail problems", \
+            f"Expected 'I have mail problems', got '{normalized3}'"
+        
+        # Test "in" in "catalog in the portal" - should NOT become "catalogin"
+        text4 = "the catalog in the portal"
+        normalized4 = normalize_text(text4)
+        assert normalized4 == "the catalog in the portal", \
+            f"Expected 'the catalog in the portal', got '{normalized4}'"
+
 
 # ============================================================================
 # 2. Naive Bayes Classifier Tests

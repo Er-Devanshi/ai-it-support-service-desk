@@ -32,14 +32,11 @@ SUFFIX_RULES = [
 ]
 
 # Text normalization rules: regex patterns to standardize common variations
+# Uses word boundaries (\b) to prevent matching inside other words
 NORMALIZE_RULES = [
-    (r"wi-fi", "wifi"),          # wi-fi -> wifi
-    (r"wi\s+fi", "wifi"),        # wi fi -> wifi
-    (r"wifi", "wifi"),           # WiFi -> wifi (handled by lowercase)
-    (r"e-mail", "email"),        # e-mail -> email
-    (r"e\s+mail", "email"),      # e mail -> email
-    (r"log-in", "login"),        # log-in -> login
-    (r"log\s+in", "login"),      # log in -> login
+    (r"\bwi[\s\-]?fi\b", "wifi"),     # wi-fi, wi fi, WiFi -> wifi
+    (r"\be[\s\-]?mail\b", "email"),   # e-mail, e mail -> email
+    (r"\blog[\s\-]?in\b", "login"),   # log-in, log in -> login
 ]
 
 

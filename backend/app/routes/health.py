@@ -16,6 +16,8 @@ def health_check():
     Liveness and readiness probe.
     Reports in-house NLP engine instead of external LLM providers.
     """
+    from app.main import _index_build_failed
+    
     return {
         "status": "running",
         "service": "ServiceDesk-AI",
@@ -26,4 +28,5 @@ def health_check():
         "mode": "own_engine",
         "rag_enabled": True,
         "rag_provider": "BM25 (in-house)",
+        "rag_ready": not _index_build_failed,
     }

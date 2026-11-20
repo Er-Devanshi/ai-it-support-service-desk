@@ -64,14 +64,11 @@ def ingest_knowledge_base(
     retriever = BM25Retriever()
     retriever.rebuild_from_documents([
         {
-            "id": chunk.id,
-            "title": chunk.document_title,
-            "content": chunk.text,
+            "id": chunk.chunk_id,
+            "title": chunk.title,
+            "content": chunk.content,
             "source": chunk.source,
-            "metadata": {
-                "chunk_number": chunk.chunk_number,
-                "document_id": chunk.document_id,
-            },
+            "metadata": chunk.metadata,
         }
         for chunk in all_chunks
     ])

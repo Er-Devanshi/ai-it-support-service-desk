@@ -1,7 +1,7 @@
 """
 BM25-based retriever compatible with the retrieval_interface contract.
 
-Implements BaseRetriever from services/rag/retrieval_interface.py
+Implements BaseRetriever from services/rag/retrieval_models.py
 using our own BM25 implementation instead of ChromaDB/embeddings.
 
 Returns RetrievedChunk objects in the exact format expected by the workflow.
@@ -11,7 +11,7 @@ import json
 from typing import Optional, List
 from pathlib import Path
 
-from app.services.rag.retrieval_interface import BaseRetriever, RetrievalResult, RetrievedChunk
+from app.services.rag.retrieval_models import BaseRetriever, RetrievalResult, RetrievedChunk
 from app.services.nlp.bm25 import BM25Index
 from app.config import settings
 from app.utils.logger import logger
@@ -25,9 +25,9 @@ class BM25Retriever(BaseRetriever):
         Initialize retriever.
         
         Args:
-            index_path: Path to saved BM25 index. If None, uses default.
+            index_path: Path to saved BM25 index. If None, uses BM25_INDEX_PATH from config.
         """
-        self.index_path = index_path or (settings.KNOWLEDGE_BASE_DIR.parent / "index" / "bm25_index.json")
+        self.index_path = index_path or settings.BM25_INDEX_PATH
         self.index = None
         self._load_index()
 

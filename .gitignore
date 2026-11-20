@@ -68,6 +68,8 @@ chroma_db/
 faiss_index/
 *.faiss
 *.pkl
+data/index/
+**/data/index/
 
 # ----- Local database files (Phase 3+) -----
 *.sqlite

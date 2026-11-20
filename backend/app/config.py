@@ -37,6 +37,8 @@ class Settings:
 
     # In-house NLP Configuration
     CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
+    RAG_STRONG_MATCH_THRESHOLD: float = float(os.getenv("RAG_STRONG_MATCH_THRESHOLD", "0.5"))
+
 
     # Database
     DATABASE_URL: str = os.getenv(
@@ -51,6 +53,7 @@ class Settings:
 
     # RAG & Knowledge Base settings
     KNOWLEDGE_BASE_DIR: Path = Path(os.getenv("KNOWLEDGE_BASE_DIR", str(BASE_DIR / "data" / "knowledge_base")))
+    BM25_INDEX_PATH: Path = Path(os.getenv("BM25_INDEX_PATH", str(BASE_DIR / "data" / "index" / "bm25_index.json")))
     RAG_TOP_K: int = int(os.getenv("RAG_TOP_K", "4"))
     RAG_RELEVANCE_THRESHOLD: float = float(os.getenv("RAG_RELEVANCE_THRESHOLD", "0.30"))
     RAG_CHUNK_SIZE: int = int(os.getenv("RAG_CHUNK_SIZE", "600"))

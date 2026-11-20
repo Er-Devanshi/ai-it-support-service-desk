@@ -23,7 +23,6 @@ from app.config import settings
 from app.services.workflow.state import ServiceDeskState
 from app.services.triage_service import TicketTriageService, TriageResult
 from app.services.rag.retrieval_interface import get_retriever
-from app.services.nlp.retriever import BM25Retriever
 from app.services.nlp.responder import build_response
 from app.services.actions.action_registry import (
     get_action_definition,
@@ -44,129 +43,9 @@ from app.utils.logger import logger
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 Preserved Keyword Matching for 100% Backward Compatibility
+# Ticket Intent Detection
 # ---------------------------------------------------------------------------
-KEYWORD_RULES = [
-    (
-        ["wi-fi", "wifi", "wireless", "internet", "network"],
-        "network",
-        (
-            "Try the following steps for Wi-Fi issues:\n"
-            "1. Restart your device and the Wi-Fi router.\n"
-            "2. Forget the network and reconnect.\n"
-            "3. Make sure Airplane Mode is off.\n"
-            "4. Check if other devices can connect — if not, the issue may be with the router.\n"
-            "If the problem persists, please raise a support ticket."
-        ),
-    ),
-    (
-        ["password", "reset", "forgot", "credentials"],
-        "account",
-        (
-            "To reset your password:\n"
-            "1. Visit the company self-service portal and click 'Forgot Password'.\n"
-            "2. Enter your registered work email address.\n"
-            "3. Follow the link sent to your email.\n"
-            "If you cannot access your email, contact IT support directly."
-        ),
-    ),
-    (
-        ["vpn", "remote", "connect from home"],
-        "network",
-        (
-            "For VPN connection issues:\n"
-            "1. Ensure you are connected to the internet first.\n"
-            "2. Open the VPN client and try reconnecting.\n"
-            "3. Verify your credentials are correct.\n"
-            "4. Check if your VPN subscription/license is active.\n"
-            "Contact IT if the issue continues."
-        ),
-    ),
-    (
-        ["email", "mail", "outlook", "sync", "inbox"],
-        "email",
-        (
-            "For email not syncing:\n"
-            "1. Check your internet connection.\n"
-            "2. Restart your email client (Outlook/Thunderbird).\n"
-            "3. Remove and re-add your email account.\n"
-            "4. Ensure your mailbox is not full (check storage quota).\n"
-            "Reach out to IT if the problem continues."
-        ),
-    ),
-    (
-        ["printer", "print", "printing"],
-        "hardware",
-        (
-            "For printer issues:\n"
-            "1. Confirm the printer is powered on and connected to the network.\n"
-            "2. Remove any stuck print jobs from the print queue.\n"
-            "3. Restart the print spooler service (Windows: services.msc → Print Spooler).\n"
-            "4. Reinstall the printer driver if needed.\n"
-            "IT can assist if the printer is shared or network-managed."
-        ),
-    ),
-    (
-        ["install", "software", "application", "app", "program"],
-        "software",
-        (
-            "For software installation requests:\n"
-            "1. Check if the software is available in the company's self-service portal.\n"
-            "2. If not listed, submit a software request ticket with the business justification.\n"
-            "3. Do not install unlicensed or personal software on work devices.\n"
-            "Approvals may be required depending on the software category."
-        ),
-    ),
-    (
-        ["locked", "account locked", "unable to login", "login failed"],
-        "account",
-        (
-            "If your account is locked:\n"
-            "1. Wait 15 minutes and try again — accounts auto-unlock after repeated failures.\n"
-            "2. Use the self-service unlock tool on the IT portal.\n"
-            "3. Contact the IT helpdesk if you need immediate access.\n"
-            "Repeated lockouts may indicate a compromised credential — please report this."
-        ),
-    ),
-    (
-        ["slow", "performance", "lagging", "freezing", "hanging"],
-        "performance",
-        (
-            "For a slow or unresponsive computer:\n"
-            "1. Restart your machine — this clears temporary files and running processes.\n"
-            "2. Check available disk space (keep at least 10% free).\n"
-            "3. Close unused applications and browser tabs.\n"
-            "4. Run a malware scan.\n"
-            "5. If issues persist, IT may need to inspect the hardware or re-image the device."
-        ),
-    ),
-    (
-        ["mfa", "two-factor", "2fa", "authenticator", "otp", "one-time"],
-        "security",
-        (
-            "For MFA / two-factor authentication issues:\n"
-            "1. Ensure the time on your authenticator device is correct (MFA is time-sensitive).\n"
-            "2. Try generating a new code and entering it quickly.\n"
-            "3. If you lost access to your authenticator app, contact IT to reset your MFA device.\n"
-            "Never share your OTP with anyone, including IT staff."
-        ),
-    ),
-    (
-        ["network", "connectivity", "no internet", "disconnected", "ethernet"],
-        "network",
-        (
-            "For general network connectivity issues:\n"
-            "1. Check if your ethernet cable is securely plugged in.\n"
-            "2. Restart your network adapter (disable and re-enable in device settings).\n"
-            "3. Flush DNS: open Command Prompt and run `ipconfig /flushdns`.\n"
-            "4. Try pinging 8.8.8.8 to test basic connectivity.\n"
-            "Escalate to IT if the entire team is affected — it may be a network outage."
-        ),
-    ),
-]
-
-
-def _detect_ticket_intent(message_lower: str) -> bool:
+def _detect_ticket_intent(message: str) -> bool:
     """
     Return True when the user is explicitly asking to create/open/raise a ticket.
     Uses a flexible pattern: any creation verb near the word "ticket".
@@ -179,6 +58,7 @@ def _detect_ticket_intent(message_lower: str) -> bool:
       - "log a ticket for me"
       - "file a support request"
     """
+    message_lower = message.lower()
     # Fast exact-phrase check first (most common forms)
     exact_phrases = [
         "create ticket", "open ticket", "raise ticket", "log ticket",
@@ -201,15 +81,6 @@ def _detect_ticket_intent(message_lower: str) -> bool:
         re.IGNORECASE,
     )
     return bool(creation_verb_pattern.search(message_lower))
-
-
-def match_phase1_rule(message: str) -> Optional[tuple[str, str]]:
-    """Return (category, reply) if exact keyword rule matched."""
-    lower = message.lower()
-    for keywords, category, reply in KEYWORD_RULES:
-        if any(bool(re.search(r"\b" + re.escape(kw) + r"\b", lower)) for kw in keywords):
-            return category, reply
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -412,14 +283,15 @@ def action_execution_node(state: ServiceDeskState) -> Dict[str, Any]:
 
 
 def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
-    """Response generation node: synthesizes troubleshooting reply, grounding with knowledge and action results."""
+    """Response generation node: synthesizes troubleshooting reply from retrieved knowledge and action results."""
     message = state.get("message", "")
     triage = state.get("triage", {})
     action_result = state.get("action_result")
     approval_id = state.get("approval_id")
     approval_needed = state.get("approval_needed")
     docs = state.get("retrieved_docs", [])
-    history_text = state.get("conversation_history", "")
+    category = triage.get("category", "general")
+    confidence = triage.get("confidence", 0.0)
 
     # If an approval was created, inform user clearly
     if approval_needed and approval_id:
@@ -452,87 +324,56 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
             "mode": "mock",
         }
 
-    # Check Phase 1 exact canned match (guarantees backward compatibility with verify_phase1.py)
-    # If the user also requested a ticket, we still serve the canned troubleshooting reply —
-    # ticket_creation_node runs after this node and will persist the ticket.
-    canned = match_phase1_rule(message)
-    if canned:
-        cat, reply = canned
-        # If user also requested a ticket, append a note so they know it will be created
-        if _detect_ticket_intent(message.lower()):
-            reply = reply + "\n\n✅ A support ticket is being created for this issue."
-        return {
-            "final_reply": reply,
-            "final_status": "answered",
-            "note": "Matched standard IT knowledge base resolution.",
-            "mode": "rule_fallback",
-        }
-
-    # If uncategorized or marked for escalation
-    if triage.get("escalation_required") or triage.get("category") == "unknown":
-        reply = (
-            "Thank you for contacting ServiceDesk-AI. I was not able to automatically "
-            "categorise your issue in this early version.\n\n"
-            "Please describe your problem in more detail, or contact the IT helpdesk "
-            "directly so a technician can assist you."
-        )
-        return {
-            "final_reply": reply,
-            "final_status": "escalate",
-            "note": "Issue requires human technician triage.",
-            "mode": "own_engine",
-        }
-
-    # Extractive response generation using BM25 retriever + responder
-    # Convert retrieved_docs back to RetrievedChunk model if needed
-    category = triage.get("category", "general")
+    # Confidence gating: use KB answer only if real evidence exists
+    # Evidence = (high classifier confidence) OR (strong BM25 match)
+    top_relevance_score = docs[0].get("relevance_score", 0.0) if docs else 0.0
+    has_classifier_confidence = confidence >= settings.CLASSIFIER_CONFIDENCE_THRESHOLD
+    has_strong_rag_match = top_relevance_score >= settings.RAG_STRONG_MATCH_THRESHOLD
     
-    if docs:
-        # Build response from retrieved documents
-        reply_content, should_escalate = build_response(
-            category=category,
-            retrieved_docs=[],  # Will be populated below
-            relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
-        )
-        
-        # Import RetrievedChunk to reconstruct the model
-        from app.services.rag.retrieval_interface import RetrievedChunk
-        chunks = []
-        for d in docs:
-            chunk = RetrievedChunk(
-                chunk_id=d.get("id", ""),
-                source=d.get("source", ""),
-                title=d.get("title", ""),
-                content=d.get("content", ""),
-                relevance_score=d.get("relevance_score"),
-                metadata=d.get("metadata", {}),
+    if has_classifier_confidence or has_strong_rag_match:
+        # Build response from retrieved documents using BM25 + responder
+        if docs:
+            # Convert retrieved_docs back to RetrievedChunk objects for build_response()
+            from app.services.rag.retrieval_interface import RetrievedChunk
+            chunks = []
+            for d in docs:
+                chunk = RetrievedChunk(
+                    chunk_id=d.get("chunk_id", ""),
+                    source=d.get("source", ""),
+                    title=d.get("title", ""),
+                    content=d.get("content", ""),
+                    relevance_score=d.get("relevance_score"),
+                    metadata=d.get("metadata", {}),
+                )
+                chunks.append(chunk)
+            
+            reply_content, should_escalate = build_response(
+                category=category,
+                retrieved_docs=chunks,
+                relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
             )
-            chunks.append(chunk)
-        
-        reply_content, should_escalate = build_response(
-            category=category,
-            retrieved_docs=chunks,
-            relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
-        )
-        
-        note_text = f"Extractive response from {len(chunks)} retrieved documents"
-        exec_mode = "own_engine"
-    else:
-        # Fallback: generic response
-        reply_content = (
-            f"Here are troubleshooting steps for your {category} issue:\n"
-            "1. Check connectivity and credentials.\n"
-            "2. Restart the affected application or device.\n"
-            "3. If unresolved, our support desk will open a ticket for you."
-        )
-        note_text = "Fallback troubleshooting steps (no retrieval match)"
-        exec_mode = "own_engine"
-
+            
+            note_text = f"Extractive response from {len(chunks)} retrieved documents (BM25)"
+            exec_mode = "own_engine"
+            
+            return {
+                "final_reply": reply_content,
+                "final_status": "escalate" if should_escalate else "answered",
+                "note": note_text,
+                "mode": exec_mode,
+            }
+    
+    # No strong evidence: out-of-scope or uncertain message
+    reply = (
+        "I can only help with IT issues. I couldn't find a matching guide for your request.\n\n"
+        "If you need help with an IT issue, please describe it in more detail. "
+        "Or say 'create a ticket' if you'd like a technician to look at it."
+    )
     return {
-        "final_reply": reply_content,
-        "final_status": "answered",
-        "note": note_text,
-        "mode": exec_mode,
+        "final_reply": reply,
+        "final_status": "escalate",
+        "note": "Low confidence + weak retrieval match: escalate for human review",
+        "mode": "own_engine",
     }
 
 
@@ -591,7 +432,12 @@ def ticket_creation_node(state: ServiceDeskState) -> Dict[str, Any]:
             assigned_group=triage.get("suggested_group", "End User Support"),
             conversation_id=state.get("conversation_id"),
         )
+        
         ticket = create_ticket(db, ticket_in, creator=user)
+        
+        if not ticket or not ticket.id:
+            logger.error(f"[Ticket Creation] Failed to create ticket: ticket object is None or invalid")
+            return {}
 
         # If escalation is required or security incident, transition newly created ticket to ESCALATED
         if escalation_needed or is_security:
@@ -620,6 +466,7 @@ def ticket_creation_node(state: ServiceDeskState) -> Dict[str, Any]:
         return result_update
     except Exception as e:
         logger.error(f"[Ticket Creation] Failed: {e}")
+        # Do NOT claim ticket was created if it actually failed
         return {}
     finally:
         db.close()

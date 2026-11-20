@@ -12,6 +12,10 @@ from app.config import settings
 from app.db.init_db import init_database
 from app.routes import health, chat, auth, tickets, approvals, actions, audit, rag
 from app.utils.logger import logger
+from app.services.nlp.bm25 import BM25Index
+
+# Global flag to track if BM25 index initialization failed
+_index_build_failed = False
 
 
 @asynccontextmanager
@@ -19,8 +23,51 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for database initialization and startup checks."""
     logger.info("Starting ServiceDesk-AI backend...")
     init_database()
+    
+    # Initialize BM25 index from knowledge base if missing or empty
+    _initialize_bm25_index()
+    
     yield
     logger.info("Shutting down ServiceDesk-AI backend.")
+
+
+def _initialize_bm25_index():
+    """Build BM25 index from knowledge base documents if missing or empty."""
+    from app.services.rag.ingest import ingest_knowledge_base
+    from app.services.nlp.retriever import BM25Retriever
+    
+    global _index_build_failed
+    _index_build_failed = False
+    
+    try:
+        retriever = BM25Retriever(index_path=settings.BM25_INDEX_PATH)
+        
+        # Check if index exists and has documents
+        if retriever.index and retriever.index.total_docs > 0:
+            logger.info(f"BM25 index loaded: {retriever.index.total_docs} documents ready")
+            return
+        
+        # Index is missing or empty - rebuild from knowledge base
+        logger.info(f"Building BM25 index from knowledge base at {settings.KNOWLEDGE_BASE_DIR}...")
+        result = ingest_knowledge_base(directory=settings.KNOWLEDGE_BASE_DIR, reset=False)
+        if result.get("status") == "success":
+            logger.info(f"✓ BM25 index built successfully: {result.get('chunks_indexed', '?')} chunks indexed")
+        else:
+            logger.warning(f"Ingestion warning: {result.get('message', 'Unknown error')}")
+            _index_build_failed = True
+    except Exception as e:
+        logger.error(f"Failed to build BM25 index: {e}")
+        _index_build_failed = True
+        # Create empty index so server doesn't crash
+        try:
+            retriever = BM25Retriever(index_path=settings.BM25_INDEX_PATH)
+            if not retriever.index:
+                retriever.index = BM25Index()
+            retriever.index.finalize()
+            retriever.save_index()
+            logger.warning("Empty BM25 index created - RAG will return no results until indexed manually")
+        except Exception as e2:
+            logger.error(f"Failed to create empty index: {e2}")
 
 
 app = FastAPI(

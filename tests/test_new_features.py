@@ -108,8 +108,9 @@ def test_chat_routine_query_no_ticket(client):
     res = client.post("/api/chat", json={"message": "My Wi-Fi is not working"})
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] == "answered"
-    # Routine Wi-Fi question should be handled without creating a ticket
+    # Wi-Fi question should be answered with BM25 retrieval (status answered)
+    assert data["status"] == "answered", f"Expected status='answered' for Wi-Fi question, got {data.get('status')}"
+    # Should not auto-create a ticket for routine queries
     assert data["ticket_id"] is None, f"Routine query should not create a ticket but got {data['ticket_id']}"
 
 

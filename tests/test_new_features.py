@@ -103,6 +103,17 @@ def test_chat_security_incident_creates_ticket(client):
     assert data["ticket_id"].startswith("TKT-")
 
 
+def test_chat_security_phishing_email_creates_escalated_ticket(client):
+    """Employee reporting a phishing email gets a P1 ticket with ESCALATED status."""
+    res = client.post("/api/chat", json={"message": "I got a phishing email"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "escalate", f"Expected escalate, got {data['status']}"
+    assert data["ticket_id"] is not None, f"Phishing should create a ticket, got None"
+    assert data["ticket_id"].startswith("TKT-"), f"Invalid ticket ID format: {data['ticket_id']}"
+    assert data["category"] == "security", f"Expected category 'security', got {data.get('category')}"
+
+
 def test_chat_routine_query_no_ticket(client):
     """Routine queries (answered by rule) do NOT auto-create tickets."""
     res = client.post("/api/chat", json={"message": "My Wi-Fi is not working"})

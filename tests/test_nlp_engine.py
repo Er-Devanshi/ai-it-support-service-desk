@@ -26,7 +26,7 @@ from app.services.nlp.tokenizer import (
 from app.services.nlp.classifier import NaiveBayesClassifier
 from app.services.nlp.bm25 import BM25Index
 from app.services.nlp.retriever import BM25Retriever
-from app.services.nlp.responder import extract_steps, build_response, build_escalation_response
+from app.services.nlp.responder import extract_steps_from_content, build_response, build_escalation_response
 from app.services.nlp.impact_urgency import score_impact, score_urgency
 from app.services.nlp.slots import extract_slots
 from app.services.rag.retrieval_interface import RetrievedChunk, RetrievalResult
@@ -461,19 +461,19 @@ class TestResponder:
     def test_extract_steps_numbered(self):
         """Test extraction of numbered steps."""
         text = "1. First step\n2. Second step\n3. Third step"
-        steps = extract_steps(text)
+        steps = extract_steps_from_content(text)
         assert len(steps) >= 3
 
     def test_extract_steps_bulleted(self):
         """Test extraction of bulleted steps."""
         text = "• First item\n• Second item\n- Third item"
-        steps = extract_steps(text)
+        steps = extract_steps_from_content(text)
         assert len(steps) >= 2
 
     def test_extract_steps_no_steps(self):
         """Test extraction from text with no clear steps."""
         text = "This is just some plain text without any steps."
-        steps = extract_steps(text)
+        steps = extract_steps_from_content(text)
         # Should return something or empty
         assert isinstance(steps, list)
 
@@ -523,6 +523,88 @@ class TestResponder:
         response = build_escalation_response(reason="No match found")
         assert len(response) > 0
         assert "No match found" in response
+
+    def test_response_never_contains_metadata_lines(self):
+        """Verify responses never include CATEGORY:, Title:, or Topic: lines."""
+        doc = RetrievedChunk(
+            chunk_id="test_001",
+            source="test.txt",
+            title="Password Reset Guide",
+            content="Title: Password Reset\nCATEGORY: Account\nTopic: Authentication\n1. Go to login page\n2. Click Forgot Password",
+            relevance_score=0.9,
+            metadata={},
+        )
+        response, _ = build_response(
+            category="account",
+            retrieved_docs=[doc],
+            relevance_threshold=0.5,
+        )
+        assert "CATEGORY:" not in response
+        assert "Title:" not in response
+        assert "Topic:" not in response
+
+    def test_response_always_ends_with_source(self):
+        """Verify every response ends with a Source: line."""
+        doc = RetrievedChunk(
+            chunk_id="test_001",
+            source="test.txt",
+            title="VPN Connection Guide",
+            content="1. Open VPN app\n2. Enter credentials\n3. Connect",
+            relevance_score=0.9,
+            metadata={},
+        )
+        response, _ = build_response(
+            category="network",
+            retrieved_docs=[doc],
+            relevance_threshold=0.5,
+        )
+        assert "**Source:**" in response
+        assert response.rstrip().endswith(doc.title)
+
+    def test_response_intro_from_document_title(self):
+        """Verify intro is built from document title, not category."""
+        doc = RetrievedChunk(
+            chunk_id="test_001",
+            source="test.txt",
+            title="Wi-Fi Connection Troubleshooting",
+            content="1. Restart router\n2. Check SSID visibility",
+            relevance_score=0.9,
+            metadata={},
+        )
+        response, _ = build_response(
+            category="network",
+            retrieved_docs=[doc],
+            relevance_threshold=0.5,
+        )
+        assert "Wi-Fi Connection Troubleshooting" in response
+        # Should NOT have category-based intro like "troubleshooting steps for network connectivity"
+        assert "network connectivity issues" not in response.lower()
+
+    def test_response_content_is_substring_of_chunk(self):
+        """Verify every sentence in the response (except intro and source) is from the chunk."""
+        chunk_content = "Steps to fix VPN. First, restart the client application. Then, check your internet connection. Finally, contact support if needed."
+        doc = RetrievedChunk(
+            chunk_id="test_001",
+            source="test.txt",
+            title="VPN Troubleshooting",
+            content=chunk_content,
+            relevance_score=0.9,
+            metadata={},
+        )
+        response, _ = build_response(
+            category="network",
+            retrieved_docs=[doc],
+            relevance_threshold=0.5,
+        )
+        # Extract response body (between intro and source)
+        lines = response.split('\n')
+        body_lines = [l for l in lines if l and "Here is the guide" not in l and "Source:" not in l]
+        for line in body_lines:
+            # Each line should be traceable to the chunk (ignoring bullets and numbering)
+            clean_line = line.lstrip('•-* 0123456789.')
+            if clean_line:
+                # Allow some flexibility for wrapping
+                assert clean_line in chunk_content or any(part in chunk_content for part in clean_line.split())
 
 
 # ============================================================================

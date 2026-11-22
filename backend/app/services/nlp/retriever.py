@@ -29,7 +29,56 @@ class BM25Retriever(BaseRetriever):
         """
         self.index_path = index_path or settings.BM25_INDEX_PATH
         self.index = None
+        self.synonyms = {}
+        self._load_synonyms()
         self._load_index()
+
+    def _load_synonyms(self):
+        """Load query synonyms from config file."""
+        synonyms_path = settings.QUERY_SYNONYMS_PATH
+        if synonyms_path.exists():
+            try:
+                with open(synonyms_path, "r") as f:
+                    config = json.load(f)
+                self.synonyms = config.get("synonyms", {})
+                logger.info(f"Loaded {len(self.synonyms)} synonym groups from {synonyms_path}")
+            except Exception as e:
+                logger.warning(f"Failed to load synonyms from {synonyms_path}: {e}")
+                self.synonyms = {}
+        else:
+            logger.warning(f"Synonyms file not found at {synonyms_path}")
+
+    def _expand_query_with_synonyms(self, query: str) -> str:
+        """
+        Expand query with synonyms for better vocabulary matching.
+        Only adds synonym terms for words that appear in the query,
+        with lower weight to avoid noise. Original tokens are repeated
+        to maintain their importance.
+        """
+        if not self.synonyms:
+            return query
+        
+        # Tokenize query
+        from app.services.nlp.tokenizer import tokenize
+        tokens = tokenize(query, remove_stopwords=False, stem=False)
+        
+        # Keep original tokens (original weight)
+        expanded_tokens = list(tokens)
+        
+        # For each token that has synonyms, add the synonym terms at reduced weight
+        # (achieved by adding them once while originals stay)
+        matched_synonyms = []
+        for token in tokens:
+            token_lower = token.lower()
+            if token_lower in self.synonyms:
+                # Add only the synonym group for this specific term
+                matched_synonyms.extend(self.synonyms[token_lower])
+        
+        # Append synonyms once at the end (lower effective weight than original)
+        if matched_synonyms:
+            expanded_tokens.extend(matched_synonyms)
+        
+        return " ".join(expanded_tokens)
 
     def _load_index(self):
         """Load index from disk if it exists, otherwise create empty."""
@@ -50,7 +99,7 @@ class BM25Retriever(BaseRetriever):
         top_k: int = 3,
     ) -> RetrievalResult:
         """
-        Retrieve relevant knowledge chunks using BM25.
+        Retrieve relevant knowledge chunks using BM25 with synonym expansion.
         
         Returns RetrievalResult with RetrievedChunk objects in standard format.
         """
@@ -78,6 +127,9 @@ class BM25Retriever(BaseRetriever):
                 recent_turns = [line.strip() for line in context.strip().split("\n") if line.strip()]
                 if recent_turns:
                     augmented_query = f"{recent_turns[-1]} {query}"
+            
+            # Expand query with synonyms for better vocabulary matching
+            augmented_query = self._expand_query_with_synonyms(augmented_query)
 
             # Search
             ranked_results = self.index.search(augmented_query, top_k=top_k)

@@ -318,3 +318,60 @@ def test_rag_ingest_endpoint_authorized_for_admin(client, admin_headers):
         data = res.json()
         assert data["status"] == "success"
         assert "chunks_indexed" in data
+
+
+# ============================================================================
+# Synonym Expansion Tests
+# ============================================================================
+
+def test_bm25_retriever_loads_synonyms(temp_bm25_index_dir):
+    """Test that BM25Retriever loads synonyms from config file."""
+    retriever = BM25Retriever(index_path=temp_bm25_index_dir / "test_synonyms.json")
+    
+    # Verify synonyms are loaded and non-empty
+    assert retriever.synonyms is not None
+    assert isinstance(retriever.synonyms, dict)
+    assert len(retriever.synonyms) > 0, "Synonyms should be loaded from query_synonyms.json"
+    
+    # Verify specific synonym groups exist
+    assert "two-factor" in retriever.synonyms
+    assert "wifi" in retriever.synonyms
+    assert "login" in retriever.synonyms
+    
+    # Verify synonym values are lists
+    assert isinstance(retriever.synonyms["two-factor"], list)
+    assert "mfa" in retriever.synonyms["two-factor"]
+
+
+def test_bm25_query_expansion_with_synonyms(temp_bm25_index_dir):
+    """Test that query expansion adds MFA-related terms for 'two-factor' queries."""
+    retriever = BM25Retriever(index_path=temp_bm25_index_dir / "test_expansion.json")
+    
+    # Build a test index with an MFA guide
+    test_docs = [
+        {
+            "id": "mfa_001",
+            "title": "MFA Authentication Guide",
+            "content": "Multi-factor authentication (MFA) requires a second form of verification. "
+                       "Common MFA methods include authenticator apps, security keys, and SMS codes.",
+            "source": "mfa_guide.txt",
+            "metadata": {},
+        },
+    ]
+    retriever.rebuild_from_documents(test_docs)
+    
+    # Test expansion: "two-factor authentication not working"
+    query = "two-factor authentication not working"
+    expanded = retriever._expand_query_with_synonyms(query)
+    
+    # Verify expansion includes original terms AND MFA-related synonyms
+    assert "two-factor" in expanded or "two" in expanded  # Original term
+    assert "mfa" in expanded.lower(), "Expansion should include 'mfa' synonym"
+    assert "authentication" in expanded  # Original term
+    
+    # Verify retrieval works with expanded query
+    result = retriever.retrieve(query, top_k=1)
+    assert result.is_available is True
+    # Should find the MFA guide due to synonym expansion
+    assert len(result.documents) > 0, "Should find MFA guide with synonym expansion"
+    assert "mfa" in result.documents[0].title.lower() or "mfa" in result.documents[0].content.lower()

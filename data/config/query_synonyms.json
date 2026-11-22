@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "description": "Query expansion synonyms for IT support vocabulary matching",
+  "synonyms": {
+    "two-factor": ["2fa", "mfa", "multi-factor", "authenticator", "authentication app"],
+    "mfa": ["multi-factor", "two-factor", "2fa", "authenticator", "authentication app"],
+    "wifi": ["wi-fi", "wireless", "network connection", "802.11"],
+    "wi-fi": ["wifi", "wireless", "network connection"],
+    "login": ["sign in", "sign-in", "log in", "authenticate", "access account"],
+    "password": ["credentials", "passphrase", "account password"],
+    "phishing": ["suspicious email", "malicious email", "fake email", "credential harvesting"],
+    "bsod": ["blue screen", "system crash", "kernel panic", "stop error"],
+    "blue screen": ["bsod", "system crash", "kernel panic"],
+    "keyboard": ["input device", "peripheral", "usb device"],
+    "mouse": ["pointer device", "input device", "peripheral"],
+    "printer": ["print device", "network printer", "peripheral"],
+    "vpn": ["virtual private network", "remote access", "secure connection"],
+    "escalation": ["escalate", "ticket escalation", "higher tier"],
+    "security": ["account security", "access control", "authentication", "phishing", "malware"],
+    "outlook": ["email client", "email application", "email software"],
+    "email": ["outlook", "messaging", "electronic mail"],
+    "account": ["user account", "login", "credentials"],
+    "software": ["application", "program", "app", "software installation"],
+    "hardware": ["device", "computer", "workstation", "peripheral"],
+    "network": ["internet", "wi-fi", "ethernet", "connectivity", "vpn"],
+    "slow": ["sluggish", "unresponsive", "performance issue", "lag"],
+    "crash": ["crash", "fail", "stop responding", "freeze", "hang"]
+  },
+  "boost_fields": {
+    "title": 2.0,
+    "heading": 1.5
+  }
+}

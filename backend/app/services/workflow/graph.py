@@ -30,7 +30,7 @@ from app.services.actions.action_registry import (
     ACTION_REGISTRY,
 )
 from app.services.approval_service import create_approval_request
-from app.services.ticket_service import create_ticket, escalate_ticket
+from app.services.ticket_service import create_ticket, escalate_ticket, escalate_ticket_automatic
 from app.services.conversation_service import (
     get_history,
     save_message,
@@ -443,13 +443,12 @@ def ticket_creation_node(state: ServiceDeskState) -> Dict[str, Any]:
         if escalation_needed or is_security:
             target_grp = triage.get("suggested_group") or ("Security Operations" if is_security else "Tier-2 Operations")
             esc_reason = state.get("escalation_reason") or ("Security incident detected" if is_security else "Automated escalation for technician triage")
-            # Use system context (user=None) for automatic escalation, bypassing employee RBAC
-            ticket = escalate_ticket(
+            # Use system-level escalation function for automatic escalations (no employee RBAC check)
+            ticket = escalate_ticket_automatic(
                 db=db,
                 ticket_id=ticket.id,
                 reason=esc_reason,
                 target_group=target_grp,
-                user=None,  # System-initiated escalation, not employee action
             )
 
         logger.info(f"[Ticket Creation] Created ticket {ticket.id} (Status: {ticket.status.value}) for conversation {state.get('conversation_id')}")

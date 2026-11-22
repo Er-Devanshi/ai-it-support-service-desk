@@ -284,7 +284,18 @@ def escalate_ticket(
     target_group: str = "Tier-2 Operations",
     user: Optional[User] = None,
 ) -> Ticket:
-    """Escalate ticket to a higher tier group with reason and record audit event."""
+    """Escalate ticket to a higher tier group with reason and record audit event.
+    
+    Args:
+        user: The user performing the escalation. If None, escalation is automatic (see escalate_ticket_automatic).
+              Raises if None and called from normal code paths (security: prevent silent RBAC bypasses).
+    """
+    if user is None:
+        # Prevent silent RBAC bypasses - if user is None, use escalate_ticket_automatic instead
+        raise ValueError(
+            "escalate_ticket requires a user. Use escalate_ticket_automatic for system-initiated escalations."
+        )
+    
     ticket = get_ticket(db, ticket_id, user)
     old_group = ticket.assigned_group
     ticket.assigned_group = target_group
@@ -308,6 +319,53 @@ def escalate_ticket(
             "priority": ticket.priority.value,
         },
     )
+    return updated
+
+
+def escalate_ticket_automatic(
+    db: Session,
+    ticket_id: str,
+    reason: str,
+    target_group: str = "Tier-2 Operations",
+) -> Ticket:
+    """Automatically escalate ticket (system-initiated, no user RBAC check).
+    
+    Used for security incidents and automatic workflows. Bypasses employee RBAC by design.
+    Records escalation with actor=None to indicate system action.
+    """
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ticket {ticket_id} not found",
+        )
+    
+    old_group = ticket.assigned_group
+    ticket.assigned_group = target_group
+    
+    # Update status with user=None for system action (no RBAC check)
+    updated = update_ticket_status(
+        db,
+        ticket_id,
+        TicketStatus.ESCALATED,
+        user=None,  # System context: no RBAC enforcement
+        notes=f"Escalated to {target_group}: {reason}",
+    )
+    
+    log_audit_event(
+        db=db,
+        event_type="TICKET_ESCALATED_AUTOMATIC",
+        actor=None,  # System action, no user
+        target_type="ticket",
+        target_id=ticket_id,
+        details={
+            "reason": reason,
+            "target_group": target_group,
+            "old_group": old_group,
+            "priority": ticket.priority.value,
+        },
+    )
+    
     return updated
 
 

@@ -7,9 +7,11 @@ Tests for newly implemented features:
 """
 
 import pytest
+from fastapi import HTTPException, status
 from app.services.conversation_service import save_message, get_history, format_history_for_llm
 from app.services.workflow.graph import run_servicedesk_workflow, reset_workflow_graph
 from app.config import settings
+from app.models.orm import TicketStatus
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -112,6 +114,60 @@ def test_chat_security_phishing_email_creates_escalated_ticket(client):
     assert data["ticket_id"] is not None, f"Phishing should create a ticket, got None"
     assert data["ticket_id"].startswith("TKT-"), f"Invalid ticket ID format: {data['ticket_id']}"
     assert data["category"] == "security", f"Expected category 'security', got {data.get('category')}"
+
+
+def test_employee_cannot_manually_escalate_ticket(client, db_session, employee_user, agent_user):
+    """Test that employees cannot manually escalate tickets they don't own (RBAC enforcement)."""
+    from app.services.ticket_service import escalate_ticket, create_ticket
+    from app.models.ticket_schemas import TicketCreate
+    from app.models.orm import TicketPriority
+    
+    # Agent creates a ticket
+    ticket_in = TicketCreate(
+        title="Test Network Issue", description="Testing RBAC enforcement", category="network", priority=TicketPriority.P3
+    )
+    ticket = create_ticket(db_session, ticket_in, creator=agent_user)
+    
+    # Employee tries to escalate a ticket they don't own - should fail with 403
+    with pytest.raises(HTTPException) as exc_info:
+        escalate_ticket(
+            db=db_session,
+            ticket_id=ticket.id,
+            reason="Employee trying to escalate",
+            user=employee_user,
+        )
+    assert exc_info.value.status_code == 403
+
+
+def test_automatic_escalation_uses_dedicated_function(db_session):
+    """Test that automatic escalations use escalate_ticket_automatic, not user=None."""
+    from app.services.ticket_service import escalate_ticket, escalate_ticket_automatic
+    from app.models.ticket_schemas import TicketCreate
+    from app.services.ticket_service import create_ticket
+    from app.models.orm import TicketPriority
+    
+    # Create a ticket
+    ticket_in = TicketCreate(
+        title="Security Test", description="Testing automatic escalation", category="security", priority=TicketPriority.P1
+    )
+    ticket = create_ticket(db_session, ticket_in, creator=None)
+    
+    # Manual escalate with user=None should raise ValueError (prevent silent bypass)
+    with pytest.raises(ValueError, match="Use escalate_ticket_automatic"):
+        escalate_ticket(
+            db=db_session,
+            ticket_id=ticket.id,
+            reason="Trying to bypass with user=None",
+            user=None,
+        )
+    
+    # Automatic escalation should work
+    ticket = escalate_ticket_automatic(
+        db=db_session,
+        ticket_id=ticket.id,
+        reason="Automatic security escalation",
+    )
+    assert ticket.status == TicketStatus.ESCALATED
 
 
 def test_chat_routine_query_no_ticket(client):

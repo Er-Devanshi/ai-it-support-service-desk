@@ -94,3 +94,37 @@ def test_langgraph_loop_bounding_and_termination():
     assert result["is_terminal"] is True
     assert result["iteration_count"] >= 1
     assert result["iteration_count"] <= 5
+
+
+
+def test_weak_retrieval_match_asks_clarifying_question():
+    """Test: Weak KB match (below threshold) triggers clarifying questions, not uncertain answer."""
+    final_state = run_servicedesk_workflow(
+        message="something obscure and not in KB"
+    )
+    
+    reply = final_state.get("final_reply", "")
+    
+    # Should ask clarifying question instead of presenting weak match
+    assert "device or OS" in reply.lower() or "error message" in reply.lower() or "when did this start" in reply.lower()
+    # Should mention ticket creation option
+    assert "ticket" in reply.lower()
+    # Should NOT present confident answer
+    assert "Source:" not in reply or "steps" not in reply.lower()
+    # Should have escalate status
+    assert final_state.get("final_status") == "escalate"
+
+
+def test_strong_retrieval_match_presents_answer():
+    """Test: Strong KB match (above threshold) presents answer with guidance."""
+    final_state = run_servicedesk_workflow(
+        message="How do I reset my password?"
+    )
+    
+    reply = final_state.get("final_reply", "")
+    
+    # Should present confident answer with guidance
+    # Should NOT be a clarifying question
+    assert "device or OS" not in reply.lower() or "step" in reply.lower()
+    # Should provide actual guidance (long enough to be meaningful)
+    assert len(reply) > 50

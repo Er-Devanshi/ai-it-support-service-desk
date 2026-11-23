@@ -347,7 +347,8 @@ def test_bm25_query_expansion_with_synonyms(temp_bm25_index_dir):
     """Test that query expansion adds MFA-related terms for 'two-factor' queries."""
     retriever = BM25Retriever(index_path=temp_bm25_index_dir / "test_expansion.json")
     
-    # Build a test index with an MFA guide
+    # Build a test index with an MFA guide plus 3 unrelated IT documents
+    # (to ensure IDF calculation works properly - single-doc corpus has zero IDF)
     test_docs = [
         {
             "id": "mfa_001",
@@ -355,6 +356,27 @@ def test_bm25_query_expansion_with_synonyms(temp_bm25_index_dir):
             "content": "Multi-factor authentication (MFA) requires a second form of verification. "
                        "Common MFA methods include authenticator apps, security keys, and SMS codes.",
             "source": "mfa_guide.txt",
+            "metadata": {},
+        },
+        {
+            "id": "printer_001",
+            "title": "Printer Troubleshooting",
+            "content": "If your printer is offline, check the network connection and restart the device.",
+            "source": "printer_guide.txt",
+            "metadata": {},
+        },
+        {
+            "id": "disk_001",
+            "title": "Disk Space Management",
+            "content": "Monitor your disk usage regularly to prevent storage issues.",
+            "source": "disk_guide.txt",
+            "metadata": {},
+        },
+        {
+            "id": "password_001",
+            "title": "Password Management",
+            "content": "Use strong passwords with uppercase, lowercase, numbers and special characters.",
+            "source": "password_guide.txt",
             "metadata": {},
         },
     ]
@@ -375,3 +397,63 @@ def test_bm25_query_expansion_with_synonyms(temp_bm25_index_dir):
     # Should find the MFA guide due to synonym expansion
     assert len(result.documents) > 0, "Should find MFA guide with synonym expansion"
     assert "mfa" in result.documents[0].title.lower() or "mfa" in result.documents[0].content.lower()
+    # Verify MFA document is top-1
+    assert result.documents[0].source == "mfa_guide.txt", "MFA guide should be top-1 result"
+
+
+def test_bm25_raw_score_sorting_above_normalization_cap(temp_bm25_index_dir):
+    """Test that raw BM25 scores above normalization cap (10.0) maintain correct order."""
+    retriever = BM25Retriever(index_path=temp_bm25_index_dir / "test_raw_scores.json")
+    
+    # Create a larger corpus so IDF is higher and scores exceed threshold
+    # 8 filler documents + 2 target documents
+    test_docs = [
+        # Fillers (unrelated content)
+        {"id": "filler_001", "title": "Printer Setup", "content": "printer configuration steps", "source": "filler_1.txt", "metadata": {}},
+        {"id": "filler_002", "title": "Network Config", "content": "network settings and routing", "source": "filler_2.txt", "metadata": {}},
+        {"id": "filler_003", "title": "Storage Options", "content": "storage and backup solutions", "source": "filler_3.txt", "metadata": {}},
+        {"id": "filler_004", "title": "Security Basics", "content": "firewall and encryption methods", "source": "filler_4.txt", "metadata": {}},
+        {"id": "filler_005", "title": "Email Setup", "content": "email client configuration", "source": "filler_5.txt", "metadata": {}},
+        {"id": "filler_006", "title": "Account Access", "content": "user account management", "source": "filler_6.txt", "metadata": {}},
+        {"id": "filler_007", "title": "Device Management", "content": "device administration and tools", "source": "filler_7.txt", "metadata": {}},
+        {"id": "filler_008", "title": "Performance Tips", "content": "system optimization techniques", "source": "filler_8.txt", "metadata": {}},
+        
+        # Target documents with rare term "multifactor" repeated at different frequencies
+        {
+            "id": "high_match_001",
+            "title": "Multifactor Authentication Guide",
+            # Repeat "multifactor" many times for high TF
+            "content": "multifactor multifactor multifactor multifactor multifactor "
+                       "multifactor multifactor multifactor multifactor multifactor "
+                       "multifactor authentication security verification",
+            "source": "high_match.txt",
+            "metadata": {},
+        },
+        {
+            "id": "low_match_001",
+            "title": "Authentication Methods",
+            # Include "multifactor" only once for lower TF
+            "content": "multifactor authentication methods security verification steps",
+            "source": "low_match.txt",
+            "metadata": {},
+        },
+    ]
+    retriever.rebuild_from_documents(test_docs)
+    
+    # Query for the rare term - both should match and both scores should be high enough
+    result = retriever.retrieve("multifactor", top_k=2)
+    
+    # Should have at least 2 results (both above threshold now due to larger corpus and higher IDF)
+    assert len(result.documents) >= 2, f"Expected 2+ results, got {len(result.documents)}"
+    
+    # High-match doc (more repetitions) should rank first despite possible normalization to 1.0
+    assert result.documents[0].source == "high_match.txt", \
+        f"Document with higher TF should rank first. Got: {result.documents[0].source}, {result.documents[1].source}"
+    assert result.documents[1].source == "low_match.txt", "Document with lower TF should rank second"
+    
+    # Both scores should be capped at 1.0 in normalized form but maintain raw order
+    assert result.documents[0].relevance_score <= 1.0
+    assert result.documents[1].relevance_score <= 1.0
+    # They should both be above the threshold (at least 0.30)
+    assert result.documents[0].relevance_score >= settings.RAG_RELEVANCE_THRESHOLD
+    assert result.documents[1].relevance_score >= settings.RAG_RELEVANCE_THRESHOLD

@@ -53,7 +53,7 @@ class BM25Retriever(BaseRetriever):
         Expand query with synonyms for better vocabulary matching.
         Only adds synonym terms for words that appear in the query,
         with lower weight to avoid noise. Original tokens are repeated
-        to maintain their importance.
+        to maintain their importance. Caps synonyms per group.
         """
         if not self.synonyms:
             return query
@@ -66,13 +66,15 @@ class BM25Retriever(BaseRetriever):
         expanded_tokens = list(tokens)
         
         # For each token that has synonyms, add the synonym terms at reduced weight
-        # (achieved by adding them once while originals stay)
         matched_synonyms = []
+        max_per_group = 3  # Cap synonyms per group
+        
         for token in tokens:
             token_lower = token.lower()
             if token_lower in self.synonyms:
-                # Add only the synonym group for this specific term
-                matched_synonyms.extend(self.synonyms[token_lower])
+                # Add only up to max_per_group synonyms for this term
+                group = self.synonyms[token_lower][:max_per_group]
+                matched_synonyms.extend(group)
         
         # Append synonyms once at the end (lower effective weight than original)
         if matched_synonyms:

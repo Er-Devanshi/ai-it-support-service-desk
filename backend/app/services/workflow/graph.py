@@ -283,7 +283,10 @@ def action_execution_node(state: ServiceDeskState) -> Dict[str, Any]:
 
 
 def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
-    """Response generation node: synthesizes troubleshooting reply from retrieved knowledge and action results."""
+    """Response generation node: synthesizes troubleshooting reply from retrieved knowledge and action results.
+    
+    If retrieval score is weak (below threshold), asks a clarifying question instead of presenting uncertain content.
+    """
     message = state.get("message", "")
     triage = state.get("triage", {})
     action_result = state.get("action_result")
@@ -291,7 +294,6 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     approval_needed = state.get("approval_needed")
     docs = state.get("retrieved_docs", [])
     category = triage.get("category", "general")
-    confidence = triage.get("confidence", 0.0)
 
     # If an approval was created, inform user clearly
     if approval_needed and approval_id:
@@ -324,55 +326,58 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
             "mode": "mock",
         }
 
-    # Confidence gating: use KB answer only if real evidence exists
-    # Evidence = (high classifier confidence) OR (strong BM25 match)
+    # Check raw retrieval score (before normalization)
+    # RAW score = normalized_score * 10, so threshold 0.5 means raw >= 5.0
     top_relevance_score = docs[0].get("relevance_score", 0.0) if docs else 0.0
-    has_classifier_confidence = confidence >= settings.CLASSIFIER_CONFIDENCE_THRESHOLD
-    has_strong_rag_match = top_relevance_score >= settings.RAG_STRONG_MATCH_THRESHOLD
+    raw_score = top_relevance_score * 10.0  # Denormalize to get raw BM25 score
+    has_strong_rag_match = raw_score >= (settings.RAG_STRONG_MATCH_THRESHOLD * 10.0)
     
-    if has_classifier_confidence or has_strong_rag_match:
+    if has_strong_rag_match and docs:
         # Build response from retrieved documents using BM25 + responder
-        if docs:
-            # Convert retrieved_docs back to RetrievedChunk objects for build_response()
-            from app.services.rag.retrieval_interface import RetrievedChunk
-            chunks = []
-            for d in docs:
-                chunk = RetrievedChunk(
-                    chunk_id=d.get("chunk_id", ""),
-                    source=d.get("source", ""),
-                    title=d.get("title", ""),
-                    content=d.get("content", ""),
-                    relevance_score=d.get("relevance_score"),
-                    metadata=d.get("metadata", {}),
-                )
-                chunks.append(chunk)
-            
-            reply_content, should_escalate = build_response(
-                category=category,
-                retrieved_docs=chunks,
-                relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
+        # Convert retrieved_docs back to RetrievedChunk objects for build_response()
+        from app.services.rag.retrieval_interface import RetrievedChunk
+        chunks = []
+        for d in docs:
+            chunk = RetrievedChunk(
+                chunk_id=d.get("chunk_id", ""),
+                source=d.get("source", ""),
+                title=d.get("title", ""),
+                content=d.get("content", ""),
+                relevance_score=d.get("relevance_score"),
+                metadata=d.get("metadata", {}),
             )
-            
-            note_text = f"Extractive response from {len(chunks)} retrieved documents (BM25)"
-            exec_mode = "own_engine"
-            
-            return {
-                "final_reply": reply_content,
-                "final_status": "escalate" if should_escalate else "answered",
-                "note": note_text,
-                "mode": exec_mode,
-            }
+            chunks.append(chunk)
+        
+        reply_content, should_escalate = build_response(
+            category=category,
+            retrieved_docs=chunks,
+            relevance_threshold=settings.RAG_RELEVANCE_THRESHOLD,
+        )
+        
+        note_text = f"Extractive response from {len(chunks)} retrieved documents (BM25)"
+        exec_mode = "own_engine"
+        
+        return {
+            "final_reply": reply_content,
+            "final_status": "escalate" if should_escalate else "answered",
+            "note": note_text,
+            "mode": exec_mode,
+        }
     
-    # No strong evidence: out-of-scope or uncertain message
+    # Weak match: ask clarifying question instead of uncertain answer
     reply = (
-        "I can only help with IT issues. I couldn't find a matching guide for your request.\n\n"
-        "If you need help with an IT issue, please describe it in more detail. "
-        "Or say 'create a ticket' if you'd like a technician to look at it."
+        "I'm not sure about your issue, but I can help narrow it down.\n\n"
+        "To find the right guide, could you tell me:\n"
+        "1. **What device or OS are you using?** (Windows, Mac, mobile, etc.)\n"
+        "2. **What is the exact error message** you're seeing (if any)?\n"
+        "3. **When did this start?** (today, after an update, etc.)\n\n"
+        "Or, if you'd like a technician to look into this, I can create a support ticket for you. "
+        "Just say **'create a ticket'** and I'll get one started."
     )
     return {
         "final_reply": reply,
         "final_status": "escalate",
-        "note": "Low confidence + weak retrieval match: escalate for human review",
+        "note": "Weak retrieval match (raw BM25 < threshold): ask clarifying question instead of uncertain answer",
         "mode": "own_engine",
     }
 

@@ -4,6 +4,7 @@ Intelligent document chunking for ServiceDesk-AI RAG pipeline.
 Preserves troubleshooting step coherence and structure:
 - Section-aware splitting (FAQ delimiters, Markdown # headers)
 - Prevents splitting sequential numbered troubleshooting steps
+- Merges chunks shorter than ~25 tokens into neighboring chunks
 - Configurable chunk size and overlap
 - Generates deterministic chunk IDs to prevent duplicate vectors on re-indexing
 """
@@ -14,6 +15,7 @@ from typing import List, Dict, Any, Optional
 from app.config import settings
 from app.services.rag.retrieval_interface import RetrievedChunk
 from app.services.rag.document_loader import LoadedDocument
+from app.services.nlp.tokenizer import tokenize_for_bm25
 
 
 class DocumentChunker:
@@ -26,6 +28,7 @@ class DocumentChunker:
     ):
         self.chunk_size = chunk_size or settings.RAG_CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or settings.RAG_CHUNK_OVERLAP
+        self.min_chunk_tokens = 25  # Merge chunks shorter than this
 
     @staticmethod
     def generate_chunk_id(source_name: str, section_title: str, content: str, index: int) -> str:
@@ -35,18 +38,73 @@ class DocumentChunker:
         clean_name = re.sub(r"[^a-zA-Z0-9_-]", "_", source_name)
         return f"{clean_name}_{index}_{hash_digest}"
 
+    def _merge_short_chunks(self, chunks: List[RetrievedChunk]) -> List[RetrievedChunk]:
+        """
+        Merge chunks shorter than min_chunk_tokens into neighboring chunks of the same section.
+        Preserves chunk order and metadata.
+        
+        Args:
+            chunks: List of RetrievedChunk objects
+        
+        Returns:
+            List of merged chunks (longer, fewer)
+        """
+        if not chunks:
+            return chunks
+        
+        merged = []
+        i = 0
+        
+        while i < len(chunks):
+            chunk = chunks[i]
+            # Count tokens in this chunk
+            tokens = tokenize_for_bm25(chunk.content, stem=False)
+            token_count = len(tokens)
+            
+            # If chunk is too short and not the last chunk, merge with next chunk
+            if token_count < self.min_chunk_tokens and i < len(chunks) - 1:
+                next_chunk = chunks[i + 1]
+                # Merge by concatenating content
+                merged_content = f"{chunk.content}\n\n{next_chunk.content}"
+                merged_title = chunk.title  # Keep original title
+                
+                # Create merged chunk with updated metadata
+                merged_chunk = RetrievedChunk(
+                    chunk_id=self.generate_chunk_id(chunk.source, merged_title, merged_content, i),
+                    source=chunk.source,
+                    title=merged_title,
+                    content=merged_content,
+                    metadata={
+                        **chunk.metadata,
+                        "merged": True,
+                        "original_chunks": [chunk.chunk_id, next_chunk.chunk_id],
+                    },
+                )
+                merged.append(merged_chunk)
+                i += 2  # Skip next chunk since we merged it
+            else:
+                # Keep chunk as-is
+                merged.append(chunk)
+                i += 1
+        
+        return merged
+
     def chunk_document(self, doc: LoadedDocument) -> List[RetrievedChunk]:
         """Chunk a document according to its format and structure."""
         # 1. Check if document has FAQ delimiters (like sample_it_faq.txt)
         if re.search(r"-{10,}\s*FAQ\s*\d+", doc.content, re.IGNORECASE):
-            return self._chunk_faq_document(doc)
-
+            chunks = self._chunk_faq_document(doc)
         # 2. Check if document has Markdown headers (# Header, ## Subheader)
-        if doc.file_type in ["md", "markdown"] or re.search(r"^\s*#{1,3}\s+", doc.content, re.MULTILINE):
-            return self._chunk_markdown_document(doc)
-
+        elif doc.file_type in ["md", "markdown"] or re.search(r"^\s*#{1,3}\s+", doc.content, re.MULTILINE):
+            chunks = self._chunk_markdown_document(doc)
         # 3. Fallback to paragraph and step-aware recursive chunking
-        return self._chunk_text_document(doc)
+        else:
+            chunks = self._chunk_text_document(doc)
+        
+        # Apply post-processing: merge short chunks
+        chunks = self._merge_short_chunks(chunks)
+        
+        return chunks
 
     def _chunk_faq_document(self, doc: LoadedDocument) -> List[RetrievedChunk]:
         """Split FAQ document by FAQ section boundaries so all troubleshooting steps stay together."""

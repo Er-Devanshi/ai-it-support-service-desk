@@ -138,10 +138,13 @@ class BM25Retriever(BaseRetriever):
 
             # Convert to RetrievedChunk objects
             chunks = []
-            for doc_id, score in ranked_results:
-                # Normalize score to [0.0, 1.0] for consistency
+            for doc_id, raw_score in ranked_results:
+                # Compute confidence score using IDF normalization
+                confidence = self.index.compute_confidence_score(augmented_query, raw_score)
+                
+                # Normalize raw score to [0.0, 1.0] for consistency
                 # BM25 scores are typically 0 to ~10, normalize via sigmoid-like approach
-                normalized_score = min(1.0, score / 10.0)
+                normalized_score = min(1.0, raw_score / 10.0)
 
                 if normalized_score < settings.RAG_RELEVANCE_THRESHOLD:
                     continue  # Skip below threshold
@@ -153,7 +156,11 @@ class BM25Retriever(BaseRetriever):
                     title=doc["title"],
                     content=doc["content"],
                     relevance_score=round(normalized_score, 3),
-                    metadata=doc.get("metadata", {}),
+                    metadata={
+                        **doc.get("metadata", {}),
+                        "confidence_score": round(confidence, 3),
+                        "raw_bm25_score": round(raw_score, 3),
+                    },
                 )
                 chunks.append(chunk)
 

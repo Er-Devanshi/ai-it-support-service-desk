@@ -37,7 +37,7 @@ class Settings:
 
     # In-house NLP Configuration
     CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
-    RAG_STRONG_MATCH_THRESHOLD: float = float(os.getenv("RAG_STRONG_MATCH_THRESHOLD", "0.5"))
+    RAG_STRONG_MATCH_THRESHOLD: float = float(os.getenv("RAG_STRONG_MATCH_THRESHOLD", "0.20"))
 
 
     # Database

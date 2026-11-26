@@ -35,7 +35,7 @@ def load_eval_queries(eval_file: Path):
 def evaluate_classifier(classifier, eval_queries):
     """Evaluate classifier on eval queries."""
     correct = 0
-    total = len(eval_queries)
+    total = 0
     predictions = []
     misclassified = []
     category_stats = defaultdict(lambda: {"correct": 0, "total": 0})
@@ -43,7 +43,13 @@ def evaluate_classifier(classifier, eval_queries):
     for query_obj in eval_queries:
         query = query_obj["query"]
         expected_cats = query_obj["expected_categories"]
+        is_out_of_scope = query_obj.get("out_of_scope", False)
         
+        # Skip out-of-scope queries from classifier evaluation
+        if is_out_of_scope:
+            continue
+        
+        total += 1
         predicted_cat, probs = classifier.predict(query)
         
         is_correct = predicted_cat in expected_cats
@@ -67,7 +73,7 @@ def evaluate_classifier(classifier, eval_queries):
         if not is_correct:
             misclassified.append({
                 "query": query,
-                "expected": expected_cats[0],
+                "expected": expected_cats[0] if expected_cats else "unknown",
                 "predicted": predicted_cat,
                 "confidence": probs.get(predicted_cat, 0.0),
             })
@@ -92,13 +98,27 @@ def evaluate_retriever(retriever, eval_queries):
     failures = []  # Queries where expected source not in top-3
     total_in_scope = 0
     
+    # Confidence score tracking
+    in_scope_confidence_scores = []
+    out_of_scope_confidence_scores = []
+    
     for query_obj in eval_queries:
         query = query_obj["query"]
         expected_sources = query_obj["expected_sources"]
         is_kb_gap = query_obj.get("kb_gap", False)
+        is_out_of_scope = query_obj.get("out_of_scope", False)
         
-        # Skip kb_gap queries from accuracy calculation
+        # Skip kb_gap queries and out_of_scope queries from accuracy calculation
         if is_kb_gap:
+            continue
+        
+        if is_out_of_scope:
+            # Retrieve but track separately for confidence distribution
+            retrieval_result = retriever.retrieve(query, top_k=5)
+            if retrieval_result.documents:
+                for doc in retrieval_result.documents:
+                    conf = doc.metadata.get("confidence_score", 0.0) if doc.metadata else 0.0
+                    out_of_scope_confidence_scores.append(conf)
             continue
         
         total_in_scope += 1
@@ -108,6 +128,7 @@ def evaluate_retriever(retriever, eval_queries):
         # The source is in format like "account_lockout_guide.md" or similar
         retrieved_sources = []
         retrieved_scores = []
+        retrieved_confidences = []
         
         for doc in retrieval_result.documents[:5]:
             # Extract the source filename - it's the most reliable identifier
@@ -122,7 +143,9 @@ def evaluate_retriever(retriever, eval_queries):
                                "email_outlook_troubleshooting.md", "hardware_printer_troubleshooting.md",
                                "mfa_authentication_guide.md", "sample_it_faq.txt",
                                "slow_computer_performance_guide.md", "software_installation_guide.md",
-                               "vpn_remote_access_guide.md", "wifi_wireless_networking_guide.md"]:
+                               "vpn_remote_access_guide.md", "wifi_wireless_networking_guide.md",
+                               "hardware_peripherals_guide.md", "network_drives_and_file_access_guide.md",
+                               "software_licensing_and_updates_guide.md", "device_setup_and_general_guide.md"]:
                     if kb_file.replace('.md', '').replace('.txt', '').lower() in title:
                         source = kb_file
                         break
@@ -131,6 +154,9 @@ def evaluate_retriever(retriever, eval_queries):
                 retrieved_sources.append(source)
                 score = doc.relevance_score if hasattr(doc, 'relevance_score') else 0.0
                 retrieved_scores.append(score)
+                conf = doc.metadata.get("confidence_score", 0.0) if doc.metadata else 0.0
+                retrieved_confidences.append(conf)
+                in_scope_confidence_scores.append(conf)
         
         # Check if any expected source appears in top-1
         top1_match = False
@@ -162,6 +188,7 @@ def evaluate_retriever(retriever, eval_queries):
             "retrieved_sources": retrieved_sources[:3],
             "retrieved_scores": retrieved_scores[:3],
             "top_score": retrieved_scores[0] if retrieved_scores else 0.0,
+            "top_confidence": retrieved_confidences[0] if retrieved_confidences else 0.0,
         }
         
         results.append(result_obj)
@@ -177,6 +204,7 @@ def evaluate_retriever(retriever, eval_queries):
                 top3_with_preview.append({
                     "source": retrieved_sources[i] if i < len(retrieved_sources) else "unknown",
                     "score": retrieved_scores[i] if i < len(retrieved_scores) else 0.0,
+                    "confidence": retrieved_confidences[i] if i < len(retrieved_confidences) else 0.0,
                     "preview": preview,
                 })
             
@@ -189,8 +217,17 @@ def evaluate_retriever(retriever, eval_queries):
     top1_rate = (top1_hits / total_in_scope * 100) if total_in_scope > 0 else 0.0
     top3_rate = (top3_hits / total_in_scope * 100) if total_in_scope > 0 else 0.0
     
+    # Compute confidence distribution statistics
+    conf_dist = {
+        "in_scope_scores": in_scope_confidence_scores,
+        "out_of_scope_scores": out_of_scope_confidence_scores,
+        "in_scope_mean": sum(in_scope_confidence_scores) / len(in_scope_confidence_scores) if in_scope_confidence_scores else 0.0,
+        "out_of_scope_mean": sum(out_of_scope_confidence_scores) / len(out_of_scope_confidence_scores) if out_of_scope_confidence_scores else 0.0,
+    }
+    
     return {
         "total_in_scope": total_in_scope,
+        "total_out_of_scope": len(out_of_scope_confidence_scores),
         "total_queries": len(eval_queries),
         "top1_hits": top1_hits,
         "top1_hit_rate": top1_rate,
@@ -198,6 +235,7 @@ def evaluate_retriever(retriever, eval_queries):
         "top3_hit_rate": top3_rate,
         "failures": failures,
         "queries": results,
+        "confidence_distribution": conf_dist,
     }
 
 
@@ -207,11 +245,18 @@ def evaluate_end_to_end(classifier, retriever, eval_queries):
     
     for query_obj in eval_queries:
         query = query_obj["query"]
-        expected_category = query_obj["expected_categories"][0]  # Primary category
+        is_out_of_scope = query_obj.get("out_of_scope", False)
+        
+        # Skip out-of-scope queries from end-to-end evaluation
+        if is_out_of_scope:
+            continue
+        
+        expected_categories = query_obj["expected_categories"]
+        expected_category = expected_categories[0] if expected_categories else "unknown"  # Primary category
         
         # Classify
         predicted_cat, cat_probs = classifier.predict(query)
-        cat_correct = predicted_cat in query_obj["expected_categories"]
+        cat_correct = predicted_cat in expected_categories if expected_categories else False
         
         # Retrieve
         retrieval_result = retriever.retrieve(query, top_k=3)
@@ -243,9 +288,9 @@ def evaluate_end_to_end(classifier, retriever, eval_queries):
             },
         })
     
-    classification_acc = sum(1 for r in results if r["classification"]["correct"]) / len(results)
-    retrieval_success = sum(1 for r in results if r["retrieval"]["success"]) / len(results)
-    escalation_rate = sum(1 for r in results if r["response"]["escalated"]) / len(results)
+    classification_acc = sum(1 for r in results if r["classification"]["correct"]) / len(results) if results else 0.0
+    retrieval_success = sum(1 for r in results if r["retrieval"]["success"]) / len(results) if results else 0.0
+    escalation_rate = sum(1 for r in results if r["response"]["escalated"]) / len(results) if results else 0.0
     
     return {
         "total_queries": len(results),
@@ -365,6 +410,54 @@ def main():
     print(f"   Top-1 hit rate (in-scope): {retriever_eval['top1_hit_rate']:.1f}% ({retriever_eval['top1_hits']}/{retriever_eval['total_in_scope']})")
     print(f"   Top-3 hit rate (in-scope): {retriever_eval['top3_hit_rate']:.1f}% ({retriever_eval['top3_hits']}/{retriever_eval['total_in_scope']})")
     
+    # Print confidence distribution
+    print(f"\n   Confidence Score Distribution:")
+    conf_dist = retriever_eval.get("confidence_distribution", {})
+    in_scope_confs = conf_dist.get("in_scope_scores", [])
+    out_of_scope_confs = conf_dist.get("out_of_scope_scores", [])
+    
+    print(f"     In-scope queries: {len(in_scope_confs)} scores")
+    if in_scope_confs:
+        print(f"       Mean confidence: {conf_dist.get('in_scope_mean', 0.0):.3f}")
+        print(f"       Min-Max: {min(in_scope_confs):.3f} - {max(in_scope_confs):.3f}")
+    
+    print(f"     Out-of-scope queries: {len(out_of_scope_confs)} scores")
+    if out_of_scope_confs:
+        print(f"       Mean confidence: {conf_dist.get('out_of_scope_mean', 0.0):.3f}")
+        print(f"       Min-Max: {min(out_of_scope_confs):.3f} - {max(out_of_scope_confs):.3f}")
+    
+    # Find optimal threshold by comparing in-scope vs out-of-scope distributions
+    # Goal: reject most out-of-scope while keeping <= ~10% in-scope below threshold
+    if in_scope_confs and out_of_scope_confs:
+        print(f"\n   Confidence Threshold Analysis:")
+        in_scope_sorted = sorted(in_scope_confs)
+        out_of_scope_sorted = sorted(out_of_scope_confs)
+        
+        # Test thresholds from 0.1 to 0.9
+        best_threshold = 0.5
+        best_ratio = float('inf')
+        
+        for threshold in [round(t * 0.1, 1) for t in range(1, 10)]:
+            in_scope_below = sum(1 for c in in_scope_confs if c < threshold)
+            out_of_scope_below = sum(1 for c in out_of_scope_confs if c < threshold)
+            
+            in_scope_pct = (in_scope_below / len(in_scope_confs) * 100) if in_scope_confs else 0
+            out_of_scope_pct = (out_of_scope_below / len(out_of_scope_confs) * 100) if out_of_scope_confs else 0
+            
+            # Prefer thresholds that reject most out-of-scope (high out_of_scope_pct)
+            # while keeping in-scope rejection low (low in_scope_pct)
+            # Maximize: out_of_scope_pct - in_scope_pct (or equivalently, minimize in_scope rejection while maximizing out_of_scope rejection)
+            if in_scope_pct <= 15:  # Allow up to 15% in-scope below threshold
+                score = out_of_scope_pct - in_scope_pct
+                if score > best_ratio:
+                    best_ratio = score
+                    best_threshold = threshold
+            
+            print(f"     Threshold={threshold:.1f}: In-scope < threshold: {in_scope_pct:.1f}% ({in_scope_below}/{len(in_scope_confs)}), Out-of-scope < threshold: {out_of_scope_pct:.1f}% ({out_of_scope_below}/{len(out_of_scope_confs)})")
+        
+        print(f"\n   RECOMMENDED THRESHOLD: {best_threshold:.1f}")
+        print(f"     This threshold rejects out-of-scope queries effectively while keeping in-scope rejection acceptable")
+    
     # Print retrieval failures
     if retriever_eval['failures']:
         print(f"\n   Retrieval failures (expected source not in top-3) ({len(retriever_eval['failures'])}):")
@@ -373,7 +466,7 @@ def main():
             print(f"       Expected: {', '.join(failure['expected_sources'])}")
             for i, r in enumerate(failure['top3_retrieved'][:2], 1):
                 preview = r.get('preview', '')[:80]
-                print(f"       [{i}] {r['source']} ({r['score']:.3f}): {preview}...")
+                print(f"       [{i}] {r['source']} ({r['score']:.3f}, conf={r.get('confidence', 0.0):.3f}): {preview}...")
         if len(retriever_eval['failures']) > 10:
             print(f"     ... and {len(retriever_eval['failures']) - 10} more retrieval failures")
     

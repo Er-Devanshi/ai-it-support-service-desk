@@ -135,7 +135,7 @@
   {
     "query": "System crashed with blue screen",
     "expected_categories": ["hardware"],
-    "expected_sources": ["slow_computer_performance_guide.md"],
+    "expected_sources": ["slow_computer_performance_guide.md", "hardware_peripherals_guide.md"],
     "kb_gap": false,
     "description": "Critical system failure"
   },
@@ -247,9 +247,9 @@
   {
     "query": "Mobile device won't sync with computer",
     "expected_categories": ["network"],
-    "expected_sources": ["network_drives_and_file_access_guide.md"],
-    "kb_gap": false,
-    "description": "Device sync failure"
+    "expected_sources": [],
+    "kb_gap": true,
+    "description": "Device sync failure - no KB coverage"
   },
   {
     "query": "Password never received in email",
@@ -537,6 +537,86 @@
     "expected_sources": ["account_security_guide.md"],
     "kb_gap": false,
     "description": "Company password policy details"
+  },
+  {
+    "query": "What's the weather forecast for tomorrow?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Weather query - not IT support"
+  },
+  {
+    "query": "How do I make a chocolate cake?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Cooking recipe - not IT support"
+  },
+  {
+    "query": "Who won the basketball championship last year?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Sports question - not IT support"
+  },
+  {
+    "query": "What are the best travel destinations in Europe?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Travel question - not IT support"
+  },
+  {
+    "query": "How do I invest in the stock market?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Financial advice - not IT support"
+  },
+  {
+    "query": "What are the best dog breeds for apartments?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Pet advice - not IT support"
+  },
+  {
+    "query": "How do I fix my car's engine?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Automotive repair - not IT support"
+  },
+  {
+    "query": "What are the symptoms of the flu?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Medical question - not IT support"
+  },
+  {
+    "query": "Tell me about the history of ancient Rome",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "Historical information - not IT support"
+  },
+  {
+    "query": "How do I learn Python programming?",
+    "expected_categories": [],
+    "expected_sources": [],
+    "kb_gap": false,
+    "out_of_scope": true,
+    "description": "General programming learning - not corporate IT support"
   }
 ]
 

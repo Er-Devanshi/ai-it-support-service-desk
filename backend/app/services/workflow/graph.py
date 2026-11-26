@@ -285,7 +285,12 @@ def action_execution_node(state: ServiceDeskState) -> Dict[str, Any]:
 def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     """Response generation node: synthesizes troubleshooting reply from retrieved knowledge and action results.
     
-    If retrieval score is weak (below threshold), asks a clarifying question instead of presenting uncertain content.
+    Escalates when:
+    - Classifier confidence < 0.50 AND top-1 retrieval confidence < 0.30
+    - User requests action requiring approval
+    - Or retrieves documents show security/urgent indicators
+    
+    If classifier confident but retrieval weak: asks clarifying question with status "answered"
     """
     message = state.get("message", "")
     triage = state.get("triage", {})
@@ -294,6 +299,7 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     approval_needed = state.get("approval_needed")
     docs = state.get("retrieved_docs", [])
     category = triage.get("category", "general")
+    classifier_confidence = triage.get("confidence", 1.0)
 
     # If an approval was created, inform user clearly
     if approval_needed and approval_id:
@@ -326,13 +332,74 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
             "mode": "mock",
         }
 
-    # Check raw retrieval score (before normalization)
-    # RAW score = normalized_score * 10, so threshold 0.5 means raw >= 5.0
-    top_relevance_score = docs[0].get("relevance_score", 0.0) if docs else 0.0
-    raw_score = top_relevance_score * 10.0  # Denormalize to get raw BM25 score
-    has_strong_rag_match = raw_score >= (settings.RAG_STRONG_MATCH_THRESHOLD * 10.0)
+    # Get top-1 retrieval confidence from metadata - FIXED metadata access
+    top_retrieval_confidence = 0.0
+    if docs and len(docs) > 0:
+        # docs are model_dump() outputs from RetrievedChunk
+        doc_dict = docs[0]
+        if isinstance(doc_dict, dict):
+            # Safely get metadata with multiple fallbacks
+            metadata = doc_dict.get("metadata")
+            if metadata is None:
+                metadata = {}
+            elif not isinstance(metadata, dict):
+                metadata = {}
+            
+            # Get confidence_score from metadata with multiple fallbacks
+            top_retrieval_confidence = metadata.get("confidence_score", 0.0)
+            # Also check relevance_score as fallback if confidence_score not found
+            if top_retrieval_confidence == 0.0:
+                top_retrieval_confidence = doc_dict.get("relevance_score", 0.0)
+            
+            # Debug: log confidence values for troubleshooting
+            logger.debug(f"Retrieval confidence: classifier={classifier_confidence:.3f}, retrieval={top_retrieval_confidence:.3f}")
     
-    if has_strong_rag_match and docs:
+    # ESCALATE RULE MOVED HERE: check immediately after getting confidence values
+    # Escalate rule: low classifier confidence AND weak retrieval
+    # This means we're uncertain about the category AND cannot find good KB match
+    should_escalate = (
+        classifier_confidence < settings.CLASSIFIER_CONFIDENCE_THRESHOLD and
+        top_retrieval_confidence < 0.30
+    )
+    
+    # Debug: log escalate rule decision
+    logger.debug(f"Escalate rule: classifier={classifier_confidence:.3f} < {settings.CLASSIFIER_CONFIDENCE_THRESHOLD} = {classifier_confidence < settings.CLASSIFIER_CONFIDENCE_THRESHOLD}, "
+                 f"retrieval={top_retrieval_confidence:.3f} < 0.30 = {top_retrieval_confidence < 0.30}, should_escalate={should_escalate}")
+    
+    if should_escalate:
+        # Get ticket_id from state if available (ticket should be created by ticket_creation_node)
+        ticket_id = state.get("ticket_created_id", "")
+        ticket_mention = f"I've created ticket **{ticket_id}** for you. " if ticket_id else ""
+        
+        reply = (
+            f"I'm not sure about your issue, but I want to make sure you get help. {ticket_mention}\n\n"
+            f"To help our support team assist you faster, could you tell me: "
+            f"**What device/OS are you using, what exact error message did you see, and when did this start?**\n\n"
+            f"A support ticket has been raised so a technician can look into this shortly."
+        )
+        return {
+            "final_reply": reply,
+            "final_status": "escalate",
+            "note": f"Low classifier confidence ({classifier_confidence:.3f}) AND weak retrieval ({top_retrieval_confidence:.3f}): escalating to support",
+            "mode": "own_engine",
+        }
+    
+    # Classifier confident but retrieval weak: ask clarifying question with status "answered"
+    if classifier_confidence >= settings.CLASSIFIER_CONFIDENCE_THRESHOLD and top_retrieval_confidence < settings.RAG_STRONG_MATCH_THRESHOLD:
+        reply = (
+            "I understand you're having an issue, but I need a bit more detail to find the right guide.\n\n"
+            "Could you tell me: **What device/OS are you using, what exact error message did you see, and when did this start?**\n\n"
+            "Or, if you'd like a technician to look into this, just say **'create a ticket'**."
+        )
+        return {
+            "final_reply": reply,
+            "final_status": "answered",
+            "note": f"Classifier confident ({classifier_confidence:.3f}) but weak retrieval ({top_retrieval_confidence:.3f}): asking clarifying question",
+            "mode": "own_engine",
+        }
+    
+    # Classifier confident and retrieval strong: build response from retrieved documents
+    if docs:
         # Build response from retrieved documents using BM25 + responder
         # Convert retrieved_docs back to RetrievedChunk objects for build_response()
         from app.services.rag.retrieval_interface import RetrievedChunk
@@ -364,20 +431,16 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
             "mode": exec_mode,
         }
     
-    # Weak match: ask clarifying question instead of uncertain answer
+    # No docs retrieved: ask for more information
     reply = (
-        "I'm not sure about your issue, but I can help narrow it down.\n\n"
-        "To find the right guide, could you tell me:\n"
-        "1. **What device or OS are you using?** (Windows, Mac, mobile, etc.)\n"
-        "2. **What is the exact error message** you're seeing (if any)?\n"
-        "3. **When did this start?** (today, after an update, etc.)\n\n"
-        "Or, if you'd like a technician to look into this, I can create a support ticket for you. "
-        "Just say **'create a ticket'** and I'll get one started."
+        "I couldn't find a specific guide for your issue. Could you provide more details?\n\n"
+        "**What device/OS are you using, what exact error message did you see, and when did this start?**\n\n"
+        "Or say **'create a ticket'** and I'll get a technician to help."
     )
     return {
         "final_reply": reply,
-        "final_status": "escalate",
-        "note": "Weak retrieval match (raw BM25 < threshold): ask clarifying question instead of uncertain answer",
+        "final_status": "answered",
+        "note": "No documents retrieved: asking for more information",
         "mode": "own_engine",
     }
 

@@ -5,6 +5,9 @@ BM25 (Best Matching 25) is a probabilistic ranking function.
 Parameters: k1=1.5 (term frequency saturation), b=0.75 (length normalization).
 
 Implemented from scratch with numpy. No external ranking library.
+
+Implements contextual indexing: prepends document title and section heading to indexed text
+(internal only; displayed content unchanged). Uses BM25-specific aggressive stopword removal.
 """
 
 import json
@@ -15,7 +18,7 @@ from collections import defaultdict, Counter
 
 import numpy as np
 
-from app.services.nlp.tokenizer import tokenize
+from app.services.nlp.tokenizer import tokenize_for_bm25
 from app.utils.logger import logger
 
 
@@ -58,12 +61,26 @@ class BM25Index:
     def add_document(self, doc_id: str, title: str, content: str, source: str, metadata: Optional[Dict] = None) -> None:
         """
         Add a document to the index.
-        """
-        # Tokenize content (include title in indexing for importance)
-        full_text = f"{title} {content}"
-        tokens = tokenize(full_text, remove_stopwords=True, stem=True)
         
-        # Store document
+        Implements contextual indexing: prepends title and section heading to indexed text
+        to give context weight during retrieval. The document storage keeps the original
+        content for display (unchanged).
+        
+        Args:
+            doc_id: Unique document identifier
+            title: Section/document title (e.g., "FAQ 1: Login Issues", "Device Setup — Prerequisites")
+            content: Main content text
+            source: Source file name
+            metadata: Optional metadata dictionary
+        """
+        # Contextual indexing: prepend title/heading to indexed text for context
+        # This increases retrieval weight for conceptually relevant material
+        indexed_text = f"{title} - {content}"
+        
+        # Tokenize for indexing using BM25-specific aggressive stopword removal
+        tokens = tokenize_for_bm25(indexed_text, stem=True)
+        
+        # Store document with original content (for display, unchanged)
         self.documents[doc_id] = {
             "id": doc_id,
             "title": title,
@@ -75,7 +92,7 @@ class BM25Index:
         self.doc_lengths[doc_id] = len(tokens)
         self.total_docs += 1
         
-        # Update inverted index
+        # Update inverted index with tokens from contextually-indexed text
         term_freqs = Counter(tokens)
         for term, freq in term_freqs.items():
             self.inverted_index[term][doc_id] = freq
@@ -101,11 +118,13 @@ class BM25Index:
         """
         Search for the top-k most relevant documents.
         
+        Uses BM25-specific tokenization with aggressive stopword removal.
+        
         Returns:
             List of (doc_id, bm25_score) tuples sorted by score descending
         """
-        # Tokenize query
-        query_tokens = tokenize(query, remove_stopwords=True, stem=True)
+        # Tokenize query using BM25-specific stopword removal
+        query_tokens = tokenize_for_bm25(query, stem=True)
         query_freqs = Counter(query_tokens)
         
         # Compute BM25 scores for each document
@@ -139,6 +158,52 @@ class BM25Index:
         # Sort by score descending
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return ranked[:top_k]
+
+    def compute_confidence_score(self, query: str, raw_bm25_score: float) -> float:
+        """
+        Compute a meaningful confidence score [0, 1] based on BM25 raw score and query IDF.
+        
+        Formula: confidence = raw_score / (Σ idf*(k1+1) over unique original query terms after stopword removal)
+        
+        This normalizes the raw BM25 score by the maximum possible score for the given query,
+        making confidence comparable across different queries.
+        
+        Args:
+            query: Original user query
+            raw_bm25_score: Raw BM25 score from search
+        
+        Returns:
+            Confidence score in [0.0, 1.0]
+        """
+        # Tokenize query using BM25-specific stopword removal
+        query_tokens = tokenize_for_bm25(query, stem=True)
+        
+        if not query_tokens:
+            return 0.0
+        
+        # Compute max possible score (Σ idf*(k1+1) for each unique query term)
+        max_possible_score = 0.0
+        seen_terms = set()
+        
+        for term in query_tokens:
+            if term in seen_terms:
+                continue  # Only count each unique term once
+            seen_terms.add(term)
+            
+            # Get IDF for this term
+            doc_freq = len(self.inverted_index.get(term, {}))
+            if doc_freq == 0:
+                continue  # Term not in any document
+            
+            idf = math.log((self.total_docs - doc_freq + 0.5) / (doc_freq + 0.5) + 1.0)
+            max_possible_score += idf * (self.k1 + 1)
+        
+        if max_possible_score == 0.0:
+            return 0.0
+        
+        # Normalize raw score by max possible, clip to [0, 1]
+        confidence = min(1.0, raw_bm25_score / max_possible_score)
+        return confidence
 
     def save(self, index_path: Path) -> None:
         """

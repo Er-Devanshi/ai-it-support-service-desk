@@ -22,6 +22,23 @@ STOPWORDS = {
     "to", "was", "will", "with", "you", "your",
 }
 
+# Extended stopword set for BM25 retrieval (more aggressive filtering)
+# Includes question words and common auxiliary verbs that add noise to retrieval
+BM25_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if",
+    "in", "into", "is", "it", "no", "not", "of", "on", "or", "such",
+    "that", "the", "their", "then", "there", "these", "they", "this",
+    "to", "was", "will", "with", "you", "your",
+    # Additional BM25-specific: question words, auxiliary verbs, pronouns
+    "how", "do", "does", "i", "my", "me", "can", "what", "should", "they",
+    "also", "been", "have", "has", "had", "did", "where", "when", "why",
+    "which", "who", "whom", "whose", "about", "before", "after", "during",
+    "between", "above", "below", "other", "same", "am", "being",
+    # Generic non-technical words
+    "something", "anything", "everything", "nothing", "very", "really",
+    "just", "please", "thing", "things", "obscure",
+}
+
 # Simple suffix-stripping rules (Porter-like but minimal)
 SUFFIX_RULES = [
     ("ies", "i"),      # dependencies -> dependenci
@@ -91,6 +108,37 @@ def tokenize(text: str, remove_stopwords: bool = True, stem: bool = True) -> Lis
     # Remove stopwords
     if remove_stopwords:
         tokens = [t for t in tokens if t not in STOPWORDS]
+    
+    # Stem
+    if stem:
+        tokens = [simple_stem(t) for t in tokens]
+    
+    return tokens
+
+
+def tokenize_for_bm25(text: str, stem: bool = True) -> List[str]:
+    """
+    Tokenize text specifically for BM25 retrieval with aggressive stopword removal.
+    Uses extended BM25_STOPWORDS set for better retrieval quality.
+    
+    Args:
+        text: Input text
+        stem: Whether to apply light stemming
+    
+    Returns:
+        List of processed tokens (stopwords always removed)
+    """
+    # Lowercase
+    text = text.lower()
+    
+    # Normalize text (e.g., wi-fi -> wifi, e-mail -> email, log-in -> login)
+    text = normalize_text(text)
+    
+    # Split on non-alphanumeric (keep word chars and hyphen)
+    tokens = re.findall(r"\b\w+(?:-\w+)?\b", text)
+    
+    # Remove BM25-specific stopwords (always, more aggressive than standard)
+    tokens = [t for t in tokens if t not in BM25_STOPWORDS]
     
     # Stem
     if stem:

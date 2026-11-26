@@ -14,7 +14,8 @@ def test_health_check_endpoint(client):
     assert data["status"] == "running"
     assert data["service"] == "ServiceDesk-AI"
     assert "phase" in data
-    assert "llm_provider" in data
+    assert "engine" in data  # Now reports in-house engine instead of LLM provider
+    assert data["engine"] == "in-house_nlp"
 
 
 @pytest.mark.parametrize(

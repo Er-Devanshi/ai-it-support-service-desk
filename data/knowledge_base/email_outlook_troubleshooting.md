@@ -74,3 +74,31 @@ This guide covers common Outlook and corporate email issues including synchroniz
 3. For shared calendars, remove and re-add the calendar: right-click "Shared Calendars" → Add Calendar → From Address Book.
 
 **Escalation condition:** Calendar issues affecting multiple users indicate a server-side Exchange or Microsoft 365 tenant policy issue. Raise a ticket to the Collaboration & Email Systems team.
+
+---
+
+## Section 5: Email Attachment Size Limits and Large File Sharing
+
+**Symptoms:**
+- Cannot attach a file larger than 25 MB to an email
+- Error: "Attachment exceeds maximum size" or "File is too large to send"
+- Need to send large files to colleagues but email attachment is not permitted
+- Want to know the exact attachment size limit
+
+**Step-by-step resolution:**
+
+1. **Know the attachment limit.** Most corporate email systems limit individual attachments to 25 MB and total message size to 50 MB. Check your company's email policy in the IT Self-Service Portal or contact [contact IT Helpdesk] for the exact limit for your organization.
+
+2. **For files under the limit:** Compress the file first to reduce size. In Windows: right-click the file → Send to → Compressed (zipped) folder. In macOS: right-click → Compress. This often reduces file size by 30–70%.
+
+3. **For files over the limit, use approved file sharing services:** Upload the file to an approved corporate collaboration tool (such as SharePoint, OneDrive, Teams, or the company's internal file portal). Share the link via email instead of attaching the file directly. This avoids size restrictions and provides version control.
+
+4. **Request a larger attachment exemption (temporary):** If you have a one-time need for a larger attachment, contact IT Support with the business justification. IT can enable a temporary exception or recommend an alternative sharing method.
+
+5. **Split the file into multiple emails:** For large archives, split the content into multiple smaller attachments (each under 25 MB) and send in separate emails. Clearly label them (e.g., "Part 1 of 3").
+
+6. **Check compression options in Outlook:** Outlook can automatically compress images in attachments. Go to File → Options → Mail → Compose messages → and enable "Reduce file size when sending pictures".
+
+7. **Verify the recipient can receive large attachments.** If sending to an external partner, their email system may have a different (usually lower) limit. Ask them what their maximum attachment size is before sending.
+
+**When to escalate:** If you consistently need to send files larger than the corporate limit for your role, or if you believe your attachment limit is set incorrectly, escalate to the Collaboration & Email Systems team. Provide your use case and they can review whether an exemption or policy adjustment is appropriate.

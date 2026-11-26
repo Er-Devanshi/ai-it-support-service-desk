@@ -2,19 +2,25 @@
 Dedicated AI Ticket Triage and Prioritization Service for ServiceDesk-AI.
 
 Implements:
-- Category & subcategory classification
-- Impact and Urgency assessment
+- Category & subcategory classification (via Naive Bayes classifier)
+- Impact and Urgency assessment (rule-based cue word scoring)
 - Strict deterministic Priority calculation matrix (P1 - P4)
 - Deterministic security indicator overrides (account compromise, ransomware, malware)
 - Missing information detection and clarification requirements
 - Escalation determination
+
+Uses in-house NLP engine only. No external LLM.
 """
 
 import re
 from typing import Optional, List, Dict, Any
+from pathlib import Path
 from pydantic import BaseModel, Field
 from app.models.orm import TicketPriority
-from app.services.llm.base import BaseLLMProvider
+from app.services.nlp.classifier import NaiveBayesClassifier
+from app.services.nlp.impact_urgency import score_impact_urgency
+from app.services.nlp.slots import get_missing_slots
+from app.config import settings
 from app.utils.logger import logger
 
 
@@ -102,17 +108,32 @@ def calculate_priority(impact: str, urgency: str) -> TicketPriority:
 
 
 class TicketTriageService:
-    """Triage service combining deterministic rules with LLM intelligence."""
+    """Triage service using in-house Naive Bayes classifier with deterministic rules."""
 
-    def __init__(self, llm_provider: Optional[BaseLLMProvider] = None):
-        self.llm_provider = llm_provider
+    def __init__(self):
+        self.classifier = self._load_classifier()
+
+    def _load_classifier(self) -> NaiveBayesClassifier:
+        """Load the trained Naive Bayes classifier."""
+        model_path = settings.KNOWLEDGE_BASE_DIR.parent / "models" / "classifier.json"
+        if model_path.exists():
+            try:
+                return NaiveBayesClassifier.load(model_path)
+            except Exception as e:
+                logger.warning(f"Failed to load classifier: {e}, using fallback triage")
+                return None
+        return None
 
     def triage_message(self, message: str, context: Optional[str] = None) -> TriageResult:
         """
         Analyze a support message and return a validated TriageResult.
-        Enforces deterministic rules on security and critical indicators,
-        incorporates conversation context for multi-turn disambiguation,
-        and ensures high-priority P1 incidents trigger escalation.
+        
+        Enforces:
+        1. Deterministic security critical keywords first (highest priority)
+        2. Naive Bayes classification (if classifier loaded)
+        3. Fallback keyword-based categorization
+        4. Rule-based impact/urgency scoring
+        5. ITIL priority matrix
         """
         lower = message.lower()
 
@@ -135,40 +156,31 @@ class TicketTriageService:
                 escalation_reason="Suspected security incident / compromise detected via deterministic security rules",
             )
 
-        # Rule 2: Try LLM-based triage if an LLM provider is available
-        if self.llm_provider is not None:
-            try:
-                system_prompt = (
-                    "You are an expert IT Service Desk Triage Agent. "
-                    "Analyze the user's issue and classify it into category, subcategory, impact (High, Medium, Low), "
-                    "urgency (High, Medium, Low), suggested assignment group, confidence (0.0 to 1.0), "
-                    "missing_information (list), clarification_needed (bool), and escalation_required (bool)."
-                )
-                user_prompt = f"IT Support Message:\n\"\"\"{message}\"\"\""
-                if context:
-                    user_prompt = f"Previous Conversation Context:\n{context}\n\nCurrent IT Support Message:\n\"\"\"{message}\"\"\""
-
-                llm_triage = self.llm_provider.generate_structured(
-                    prompt=user_prompt,
-                    schema=TriageResult,
-                    system_instruction=system_prompt,
-                )
-                # Recalculate priority deterministically using impact and urgency
-                llm_triage.priority = calculate_priority(llm_triage.impact, llm_triage.urgency)
-                if llm_triage.priority == TicketPriority.P1:
-                    llm_triage.escalation_required = True
-                    if not llm_triage.escalation_reason:
-                        llm_triage.escalation_reason = "Critical P1 incident requires immediate escalation"
-                return llm_triage
-            except Exception as e:
-                logger.warning(f"LLM triage failed, falling back to deterministic triage: {e}")
-
-        # Rule 3: Deterministic keyword-based triage fallback
+        # Rule 2: Try Naive Bayes classification if available
         detected_category = "unknown"
-        for cat, keywords in CATEGORY_KEYWORDS.items():
-            if any(re.search(r"\b" + re.escape(kw) + r"\b", lower) for kw in keywords):
-                detected_category = cat
-                break
+        confidence = 0.0
+        
+        if self.classifier is not None:
+            try:
+                category, probs = self.classifier.predict(message)
+                detected_category = category
+                confidence = max(probs.values())
+                
+                # If confidence below threshold, escalate for clarification
+                if confidence < getattr(settings, 'CLASSIFIER_CONFIDENCE_THRESHOLD', 0.5):
+                    logger.info(f"Low classifier confidence ({confidence:.2f}) for category {category}")
+                    detected_category = "unknown"
+                    confidence = 0.0
+            except Exception as e:
+                logger.warning(f"Classifier prediction failed: {e}, using fallback")
+
+        # Rule 3: Deterministic keyword-based fallback
+        if detected_category == "unknown":
+            for cat, keywords in CATEGORY_KEYWORDS.items():
+                if any(re.search(r"\b" + re.escape(kw) + r"\b", lower) for kw in keywords):
+                    detected_category = cat
+                    confidence = 0.75
+                    break
 
         # Fallback to context keywords if message alone is uncategorized
         if detected_category == "unknown" and context:
@@ -176,28 +188,32 @@ class TicketTriageService:
             for cat, keywords in CATEGORY_KEYWORDS.items():
                 if any(re.search(r"\b" + re.escape(kw) + r"\b", lower_context) for kw in keywords):
                     detected_category = cat
+                    confidence = 0.65
                     break
 
-        impact = "Medium"
-        urgency = "Medium"
+        # Rule-based impact and urgency scoring
+        impact, urgency = score_impact_urgency(message)
+        
+        # Override with category-specific defaults if needed
         if detected_category == "security":
-            # MFA/authenticator issues are IAM access problems, not critical incidents.
-            # Genuine security incidents (phishing, ransomware, compromise) are caught by
-            # SECURITY_CRITICAL_KEYWORDS above and never reach this block.
             impact = "Medium"
             urgency = "High"
         elif detected_category in ("account", "network"):
-            impact = "Medium"
-            urgency = "High"
-        elif detected_category == "unknown":
-            impact = "Low"
-            urgency = "Low"
+            if impact == "Low":
+                impact = "Medium"
+            if urgency == "Low":
+                urgency = "High"
 
+        # ITIL priority matrix
         priority = calculate_priority(impact, urgency)
         suggested_group = ASSIGNMENT_GROUPS.get(detected_category, "End User Support")
 
+        # Escalation rules
         escalate = (detected_category == "unknown" or priority == TicketPriority.P1)
         clarify = len(message.split()) < 3 and detected_category == "unknown"
+        
+        # Slot-based clarification
+        missing_slots = get_missing_slots(message, detected_category) if detected_category != "unknown" else []
 
         escalation_reason = None
         if priority == TicketPriority.P1:
@@ -213,9 +229,9 @@ class TicketTriageService:
             urgency=urgency,
             priority=priority,
             suggested_group=suggested_group,
-            confidence=0.80 if detected_category != "unknown" else 0.40,
-            missing_information=["More specific description"] if clarify else [],
-            clarification_needed=clarify,
+            confidence=confidence,
+            missing_information=missing_slots,
+            clarification_needed=clarify or (len(missing_slots) > 0),
             escalation_required=escalate,
             escalation_reason=escalation_reason,
         )

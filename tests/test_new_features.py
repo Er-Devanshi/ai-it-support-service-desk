@@ -2,15 +2,16 @@
 Tests for newly implemented features:
   - Chat-to-ticket integration (explicit request + escalation)
   - Persistent conversation history (save & retrieve)
-  - Correct LLM provider / mode reporting
+  - In-house NLP engine mode reporting
   - Duplicate ticket prevention within a single workflow run
 """
 
 import pytest
+from fastapi import HTTPException, status
 from app.services.conversation_service import save_message, get_history, format_history_for_llm
 from app.services.workflow.graph import run_servicedesk_workflow, reset_workflow_graph
-from app.services.llm.mock_provider import MockLLMProvider
 from app.config import settings
+from app.models.orm import TicketStatus
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -104,13 +105,79 @@ def test_chat_security_incident_creates_ticket(client):
     assert data["ticket_id"].startswith("TKT-")
 
 
+def test_chat_security_phishing_email_creates_escalated_ticket(client):
+    """Employee reporting a phishing email gets a P1 ticket with ESCALATED status."""
+    res = client.post("/api/chat", json={"message": "I got a phishing email"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "escalate", f"Expected escalate, got {data['status']}"
+    assert data["ticket_id"] is not None, f"Phishing should create a ticket, got None"
+    assert data["ticket_id"].startswith("TKT-"), f"Invalid ticket ID format: {data['ticket_id']}"
+    assert data["category"] == "security", f"Expected category 'security', got {data.get('category')}"
+
+
+def test_employee_cannot_manually_escalate_ticket(client, db_session, employee_user, agent_user):
+    """Test that employees cannot manually escalate tickets they don't own (RBAC enforcement)."""
+    from app.services.ticket_service import escalate_ticket, create_ticket
+    from app.models.ticket_schemas import TicketCreate
+    from app.models.orm import TicketPriority
+    
+    # Agent creates a ticket
+    ticket_in = TicketCreate(
+        title="Test Network Issue", description="Testing RBAC enforcement", category="network", priority=TicketPriority.P3
+    )
+    ticket = create_ticket(db_session, ticket_in, creator=agent_user)
+    
+    # Employee tries to escalate a ticket they don't own - should fail with 403
+    with pytest.raises(HTTPException) as exc_info:
+        escalate_ticket(
+            db=db_session,
+            ticket_id=ticket.id,
+            reason="Employee trying to escalate",
+            user=employee_user,
+        )
+    assert exc_info.value.status_code == 403
+
+
+def test_automatic_escalation_uses_dedicated_function(db_session):
+    """Test that automatic escalations use escalate_ticket_automatic, not user=None."""
+    from app.services.ticket_service import escalate_ticket, escalate_ticket_automatic
+    from app.models.ticket_schemas import TicketCreate
+    from app.services.ticket_service import create_ticket
+    from app.models.orm import TicketPriority
+    
+    # Create a ticket
+    ticket_in = TicketCreate(
+        title="Security Test", description="Testing automatic escalation", category="security", priority=TicketPriority.P1
+    )
+    ticket = create_ticket(db_session, ticket_in, creator=None)
+    
+    # Manual escalate with user=None should raise ValueError (prevent silent bypass)
+    with pytest.raises(ValueError, match="Use escalate_ticket_automatic"):
+        escalate_ticket(
+            db=db_session,
+            ticket_id=ticket.id,
+            reason="Trying to bypass with user=None",
+            user=None,
+        )
+    
+    # Automatic escalation should work
+    ticket = escalate_ticket_automatic(
+        db=db_session,
+        ticket_id=ticket.id,
+        reason="Automatic security escalation",
+    )
+    assert ticket.status == TicketStatus.ESCALATED
+
+
 def test_chat_routine_query_no_ticket(client):
     """Routine queries (answered by rule) do NOT auto-create tickets."""
     res = client.post("/api/chat", json={"message": "My Wi-Fi is not working"})
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] == "answered"
-    # Routine Wi-Fi question should be handled without creating a ticket
+    # Wi-Fi question should be answered with BM25 retrieval (status answered)
+    assert data["status"] == "answered", f"Expected status='answered' for Wi-Fi question, got {data.get('status')}"
+    # Should not auto-create a ticket for routine queries
     assert data["ticket_id"] is None, f"Routine query should not create a ticket but got {data['ticket_id']}"
 
 
@@ -139,29 +206,23 @@ def test_chat_no_duplicate_ticket_same_workflow(client):
 # LLM mode / provider reporting
 # ──────────────────────────────────────────────────────────────────────────────
 
-def test_mock_provider_reports_mock_mode():
-    """MockLLMProvider.generate returns is_mock=True."""
-    provider = MockLLMProvider()
-    resp = provider.generate("How do I fix slow performance?")
-    assert resp.is_mock is True
-    assert resp.provider == "mock"
 
-
-def test_chat_response_mode_is_not_live_in_demo(client):
-    """In DEMO_MODE the mode field must not be 'live'."""
+def test_chat_response_mode_is_own_engine(client):
+    """In own-engine mode the mode field must indicate in-house NLP."""
     res = client.post("/api/chat", json={"message": "something very unusual happened"})
     assert res.status_code == 200
     data = res.json()
-    # In demo/mock mode, mode should never claim 'live' (live = real LLM)
-    assert data.get("mode") != "live", f"mode should not be 'live' in demo mode, got: {data.get('mode')}"
+    # With in-house NLP, mode should indicate own_engine
+    assert data.get("mode") == "own_engine", f"mode should be 'own_engine', got: {data.get('mode')}"
 
 
-def test_health_endpoint_reports_mode(client):
-    """Health endpoint exposes LLM mode information."""
+def test_health_endpoint_reports_own_engine(client):
+    """Health endpoint reports in-house NLP engine instead of external LLM."""
     res = client.get("/api/health")
     assert res.status_code == 200
     data = res.json()
     assert "mode" in data
-    assert "llm_provider" in data
-    # In test/demo mode the health endpoint should indicate mock/demo
-    assert data["mode"] in ("mock/demo", "live")
+    assert data["mode"] == "own_engine"
+    assert "engine" in data
+    assert data["engine"] == "in-house_nlp"
+

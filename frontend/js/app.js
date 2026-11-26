@@ -276,9 +276,7 @@ async function checkHealth() {
     const dot = $("navStatusDot");
     dot.className = "status-dot online";
     $("navStatusText").textContent = "API Online";
-    const prov = (d.llm_provider || "AI").toUpperCase();
-    const mock = d.mode === "mock/demo" || d.mode === "mock";
-    $("llmBadgeText").textContent = mock ? `${prov} · Mock` : `${prov} · Live`;
+    $("llmBadgeText").textContent = "In-house NLP engine";
   } catch(_) {
     $("navStatusDot").className = "status-dot offline";
     $("navStatusText").textContent = "API Offline";
@@ -979,7 +977,7 @@ async function loadServiceHealth() {
     $("overallUptime").textContent = "99.97% avg uptime";
   }
   const now = new Date().toLocaleTimeString();
-  $("overallSub").textContent = `${SERVICE_DEFINITIONS.length} services monitored · Last checked ${now}`;
+  $("overallSub").textContent = `${SERVICE_DEFINITIONS.length} services monitored · Last checked ${now} · Simulated demo data`;
   $("uptimeClock").textContent = `Last refreshed: ${now}`;
 
   // Incidents

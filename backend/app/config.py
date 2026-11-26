@@ -35,21 +35,10 @@ class Settings:
     # In development, allow wildcard if configured or if origins contain '*'
     ALLOW_ALL_ORIGINS: bool = "*" in os.getenv("CORS_ORIGINS", "*")
 
-    # LLM Settings (Provider-independent)
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini").lower()
-    LLM_MODEL: str = os.getenv("LLM_MODEL", os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
-    
-    # Gemini specific
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    # In-house NLP Configuration
+    CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
+    RAG_STRONG_MATCH_THRESHOLD: float = float(os.getenv("RAG_STRONG_MATCH_THRESHOLD", "0.20"))
 
-    # OpenAI specific (future support)
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
-    # Ollama specific (future local support)
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
 
     # Database
     DATABASE_URL: str = os.getenv(
@@ -62,19 +51,15 @@ class Settings:
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", "120"))
 
-    # RAG & Vector Database settings
+    # RAG & Knowledge Base settings
     KNOWLEDGE_BASE_DIR: Path = Path(os.getenv("KNOWLEDGE_BASE_DIR", str(BASE_DIR / "data" / "knowledge_base")))
-    CHROMA_PERSIST_DIR: Path = Path(os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "data" / "chroma_db")))
-    CHROMA_COLLECTION_NAME: str = os.getenv("CHROMA_COLLECTION_NAME", "servicedesk_knowledge_base")
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+    BM25_INDEX_PATH: Path = Path(os.getenv("BM25_INDEX_PATH", str(BASE_DIR / "data" / "index" / "bm25_index.json")))
+    QUERY_SYNONYMS_PATH: Path = Path(os.getenv("QUERY_SYNONYMS_PATH", str(BASE_DIR / "data" / "config" / "query_synonyms.json")))
     RAG_TOP_K: int = int(os.getenv("RAG_TOP_K", "4"))
     RAG_RELEVANCE_THRESHOLD: float = float(os.getenv("RAG_RELEVANCE_THRESHOLD", "0.30"))
     RAG_CHUNK_SIZE: int = int(os.getenv("RAG_CHUNK_SIZE", "600"))
     RAG_CHUNK_OVERLAP: int = int(os.getenv("RAG_CHUNK_OVERLAP", "80"))
     RAG_ENABLED: bool = os.getenv("RAG_ENABLED", "true").lower() in ("true", "1", "yes")
-
-    # Demo / Mock mode override
-    DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
 
 
 settings = Settings()

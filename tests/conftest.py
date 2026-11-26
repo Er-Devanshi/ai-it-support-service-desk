@@ -30,10 +30,8 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
     """Ensure test environment variables are set."""
-    os.environ["DEMO_MODE"] = "true"
-    os.environ["LLM_PROVIDER"] = "mock"
-    settings.DEMO_MODE = True
-    settings.LLM_PROVIDER = "mock"
+    os.environ.setdefault("APP_ENV", "test")
+    settings.CLASSIFIER_CONFIDENCE_THRESHOLD = 0.5
 
 
 @pytest.fixture

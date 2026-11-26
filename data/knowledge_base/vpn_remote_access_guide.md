@@ -33,3 +33,25 @@ This operational handbook provides tier-1 and tier-2 IT support engineers and em
 ## Split Tunneling Rules
 - Work-related internal services (internal wikis, code repositories, ERP, JIRA) route strictly through the encrypted corporate VPN tunnel.
 - High-bandwidth public services (YouTube, Spotify, personal cloud storage) bypass the tunnel directly via local internet breakout to conserve corporate bandwidth.
+
+## VPN Requirements for Remote Work
+
+**When VPN connection is required:**
+- When accessing company resources (email, file shares, internal applications) from outside the corporate office or corporate network
+- When connecting from home, a coffee shop, hotel, airport, or any public Wi-Fi network
+- When using a mobile device to access company services from outside the office
+- When you need to connect to a company database, internal application server, or restricted resource
+
+**When VPN may not be required:**
+- When accessing publicly available company websites (check your IT policy)
+- When using company-approved cloud services that do not require VPN (some SaaS applications allow direct connection)
+
+**To verify your company's VPN policy:** Check the IT Self-Service Portal, company intranet, or contact [contact IT Helpdesk] for your organization's specific remote access and VPN requirements. VPN policies vary by company, department, and resource sensitivity.
+
+**Step-by-step VPN connection:**
+1. Download and install the official VPN client provided by [contact IT Helpdesk] or available on the IT portal.
+2. Open the VPN client and enter your corporate username and password.
+3. If prompted, complete multi-factor authentication (MFA) on your registered device.
+4. Once connected, you should see a "Connected" status in the VPN client.
+5. You can now access corporate resources as if you were in the office.
+6. When finished, disconnect from the VPN by clicking "Disconnect" in the client.

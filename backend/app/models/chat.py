@@ -51,3 +51,6 @@ class ChatResponse(BaseModel):
     action_executed: Optional[Dict[str, Any]] = Field(default=None, description="Details of simulated action if executed")
     citations: List[Dict[str, Any]] = Field(default_factory=list, description="Retrieved knowledge base citations")
     mode: Optional[str] = Field(default="live", description="Execution mode: 'gemini', 'mock', 'rule_fallback'")
+    # Intent layer (populated when USE_INTENT=True)
+    intent: Optional[str] = Field(default=None, description="Detected intent label (greeting, troubleshoot, etc.)")
+    intent_confidence: Optional[float] = Field(default=None, description="Intent classifier confidence [0.0–1.0]")

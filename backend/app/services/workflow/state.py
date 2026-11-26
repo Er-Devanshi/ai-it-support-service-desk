@@ -21,6 +21,11 @@ class ServiceDeskState(TypedDict):
     # Conversation history (loaded at intake for multi-turn context)
     conversation_history: str
     
+    # Intent detection (populated by intent_router_node when USE_INTENT=True)
+    intent: Optional[str]           # e.g. "greeting", "create_ticket", "troubleshoot"
+    intent_confidence: Optional[float]  # classifier confidence [0.0–1.0]
+    intent_target: Optional[str]    # routing decision: handler name or "pipeline"
+    
     # RAG knowledge
     retrieved_docs: List[Dict[str, Any]]
     citations: List[Dict[str, Any]]

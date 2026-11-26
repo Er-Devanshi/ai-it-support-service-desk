@@ -39,6 +39,15 @@ class Settings:
     CLASSIFIER_CONFIDENCE_THRESHOLD: float = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.5"))
     RAG_STRONG_MATCH_THRESHOLD: float = float(os.getenv("RAG_STRONG_MATCH_THRESHOLD", "0.20"))
 
+    # Intent Engine Configuration
+    # Set USE_INTENT=true to enable the intent routing layer.
+    # When False (default), behaviour is identical to the original pipeline.
+    USE_INTENT: bool = os.getenv("USE_INTENT", "false").lower() in ("true", "1", "yes")
+    # Minimum classifier confidence to handle ticket intents directly
+    INTENT_CONFIDENCE_THRESHOLD: float = float(os.getenv("INTENT_CONFIDENCE_THRESHOLD", "0.6"))
+    # Maximum token count for a message to be treated as pure small-talk
+    INTENT_SHORT_MSG_TOKENS: int = int(os.getenv("INTENT_SHORT_MSG_TOKENS", "6"))
+
 
     # Database
     DATABASE_URL: str = os.getenv(

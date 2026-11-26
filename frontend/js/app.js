@@ -449,6 +449,7 @@ function addBotMeta(wrap, meta, text) {
   };
   if (meta.category && meta.category!=="unknown") addTag(meta.category, "tag-cat");
   if (meta.priority) addTag(meta.priority, `tag-${meta.priority.toLowerCase()}`);
+  if (meta.intent && meta.intent !== "troubleshoot") addTag(`intent: ${meta.intent}`, "tag-intent");
   if (meta.status) {
     const cls = {answered:"tag-answered",escalate:"tag-escalate",pending_approval:"tag-pending"}[meta.status]||"tag-unknown";
     addTag(meta.status.replace("_"," "), cls);

@@ -1,0 +1,57 @@
+[
+  {"query": "Hey!", "intent": "greeting"},
+  {"query": "Morning!", "intent": "greeting"},
+  {"query": "Hello, is anyone there?", "intent": "greeting"},
+  {"query": "Good morning to you", "intent": "greeting"},
+  {"query": "Greetings", "intent": "greeting"},
+
+  {"query": "Appreciate your help", "intent": "thanks"},
+  {"query": "Thanks, that fixed it", "intent": "thanks"},
+  {"query": "You were very helpful, thanks", "intent": "thanks"},
+  {"query": "All good now, thank you!", "intent": "thanks"},
+  {"query": "Shukriya bhai", "intent": "thanks"},
+
+  {"query": "I am done for now, see you", "intent": "goodbye"},
+  {"query": "Ok closing this chat", "intent": "goodbye"},
+  {"query": "Have a nice day", "intent": "goodbye"},
+  {"query": "Alright, logging out", "intent": "goodbye"},
+  {"query": "Later, bye", "intent": "goodbye"},
+
+  {"query": "What's happening with my ticket?", "intent": "check_ticket_status"},
+  {"query": "Show me my current open requests", "intent": "check_ticket_status"},
+  {"query": "Has my issue been resolved?", "intent": "check_ticket_status"},
+  {"query": "List my support cases", "intent": "check_ticket_status"},
+  {"query": "meri ticket ka update batao", "intent": "check_ticket_status"},
+  {"query": "Any news on my pending request?", "intent": "check_ticket_status"},
+  {"query": "Track my ticket TKT-ABC", "intent": "check_ticket_status"},
+
+  {"query": "Open a ticket for this problem please", "intent": "create_ticket"},
+  {"query": "Register a support request on my behalf", "intent": "create_ticket"},
+  {"query": "Mujhe ek ticket banana hai", "intent": "create_ticket"},
+  {"query": "Can you raise a service request?", "intent": "create_ticket"},
+  {"query": "File a complaint as a ticket", "intent": "create_ticket"},
+  {"query": "I need a support case created", "intent": "create_ticket"},
+
+  {"query": "Network drive is inaccessible", "intent": "troubleshoot"},
+  {"query": "My screen goes black randomly", "intent": "troubleshoot"},
+  {"query": "Cannot login to Outlook web access", "intent": "troubleshoot"},
+  {"query": "My computer takes 10 minutes to boot", "intent": "troubleshoot"},
+  {"query": "USB device is not recognised", "intent": "troubleshoot"},
+  {"query": "Company VPN gives authentication error", "intent": "troubleshoot"},
+  {"query": "Print job is stuck in queue", "intent": "troubleshoot"},
+  {"query": "My two-factor authentication app stopped working", "intent": "troubleshoot"},
+
+  {"query": "hi, my VPN is down", "intent": "troubleshoot"},
+  {"query": "thanks but wifi still not working", "intent": "troubleshoot"},
+  {"query": "hello, I cannot log in to my account", "intent": "troubleshoot"},
+  {"query": "good morning, printer is offline today", "intent": "troubleshoot"},
+  {"query": "hey I need help with my laptop screen", "intent": "troubleshoot"},
+
+  {"query": "thanks for the reply but the issue persists", "intent": "troubleshoot"},
+  {"query": "hi, can you help me reset my password?", "intent": "troubleshoot"},
+  {"query": "good evening, outlook is broken again", "intent": "troubleshoot"},
+  {"query": "bye but actually my VPN still fails", "intent": "troubleshoot"},
+  {"query": "thanks but I am still getting the same error", "intent": "troubleshoot"},
+  {"query": "see you, oh wait my drive is still not mounting", "intent": "troubleshoot"},
+  {"query": "create a ticket for my slow computer issue", "intent": "create_ticket"}
+]

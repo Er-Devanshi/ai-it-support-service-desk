@@ -4,6 +4,8 @@ LangGraph Multi-Agent Workflow Implementation for ServiceDesk-AI.
 Explicit StateGraph with:
 - Intake & Context Node
 - Triage & Intent Detection Node
+- Intent Router Node            (NEW — routes small-talk / ticket intents directly;
+                                  passes everything else to the existing pipeline)
 - Security Check & Escalation Node
 - RAG Knowledge Retrieval Node
 - Action Decision & Authorization Node
@@ -11,6 +13,9 @@ Explicit StateGraph with:
 - Response Generation Node
 - Outcome Verification Node
 - Conditional Routing and Bounded Termination
+
+When settings.USE_INTENT is False (the default) the intent_router_node is a
+transparent pass-through, so behaviour is identical to the original 9-node graph.
 """
 
 from typing import Dict, Any, Optional
@@ -152,6 +157,72 @@ def triage_node(state: ServiceDeskState) -> Dict[str, Any]:
     }
 
 
+def intent_router_node(state: ServiceDeskState) -> Dict[str, Any]:
+    """
+    Intent Router Node — runs AFTER security detection and triage, BEFORE retrieval.
+
+    When USE_INTENT=False (default) this is a transparent pass-through that adds
+    intent=None fields and returns immediately, preserving exact original behaviour.
+
+    When USE_INTENT=True:
+      - Classifies the message intent (greeting / thanks / goodbye /
+        check_ticket_status / create_ticket / troubleshoot).
+      - For small-talk intents (greeting/thanks/goodbye): only handles directly
+        when the message is short (<= INTENT_SHORT_MSG_TOKENS) and contains no
+        technical keyword; otherwise routes to pipeline.
+      - For check_ticket_status / create_ticket (above confidence threshold):
+        calls the appropriate handler and writes results into state so the
+        response_generation and verification nodes run as normal.
+      - For troubleshoot or low confidence: writes intent metadata and lets the
+        existing pipeline proceed unchanged.
+    """
+    # Always initialise intent fields in state (they are Optional so can be None)
+    base = {
+        "intent": None,
+        "intent_confidence": None,
+        "intent_target": "pipeline",
+    }
+
+    if not getattr(settings, "USE_INTENT", False):
+        return base  # Feature flag off: exact no-op
+
+    message = state.get("message", "")
+
+    # Import here to avoid circular imports at module level
+    from app.services.intent_engine.router import route_intent
+    from app.services.intent_engine.handlers import (
+        handle_greeting,
+        handle_thanks,
+        handle_goodbye,
+        handle_check_ticket_status,
+        handle_create_ticket,
+    )
+
+    intent, confidence, target = route_intent(message, state)
+
+    result = {
+        "intent": intent,
+        "intent_confidence": confidence,
+        "intent_target": target,
+    }
+
+    # Dispatch to handler if not pipeline
+    handler_map = {
+        "greeting":           handle_greeting,
+        "thanks":             handle_thanks,
+        "goodbye":            handle_goodbye,
+        "check_ticket_status": handle_check_ticket_status,
+        "create_ticket":      handle_create_ticket,
+    }
+
+    if target in handler_map:
+        logger.info(f"[IntentRouter] Handling intent={intent!r} directly (confidence={confidence:.3f})")
+        handler_result = handler_map[target](state)
+        result.update(handler_result)
+
+    return result
+
+
 def security_escalation_node(state: ServiceDeskState) -> Dict[str, Any]:
     """Security escalation node: flags critical security threat and prescribes SecOps action."""
     message = state.get("message", "")
@@ -291,6 +362,9 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     - Or retrieves documents show security/urgent indicators
     
     If classifier confident but retrieval weak: asks clarifying question with status "answered"
+    
+    Pass-through: if an intent handler already wrote final_reply (intent_target != "pipeline"),
+    this node does nothing so the handler's reply is preserved.
     """
     message = state.get("message", "")
     triage = state.get("triage", {})
@@ -300,6 +374,15 @@ def response_generation_node(state: ServiceDeskState) -> Dict[str, Any]:
     docs = state.get("retrieved_docs", [])
     category = triage.get("category", "general")
     classifier_confidence = triage.get("confidence", 1.0)
+
+    # --- Intent handler pass-through (amendment 1) ---
+    # If the intent router already produced a reply (target != "pipeline"),
+    # do not overwrite it. Just return an empty update so verification can save it.
+    if (
+        state.get("intent_target", "pipeline") != "pipeline"
+        and state.get("final_reply", "")
+    ):
+        return {}  # no-op: existing final_reply / final_status are kept
 
     # If an approval was created, inform user clearly
     if approval_needed and approval_id:
@@ -572,9 +655,22 @@ def verification_node(state: ServiceDeskState) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def route_after_triage(state: ServiceDeskState) -> str:
-    """Route to security escalation if security incident detected, else RAG retrieval."""
+    """Route to security escalation if security incident detected, else intent router."""
     if state.get("is_security_incident"):
         return "security_escalation"
+    return "intent_router"
+
+
+def route_after_intent(state: ServiceDeskState) -> str:
+    """
+    Route after the intent router.
+
+    - If a handler already wrote final_reply (target != "pipeline"):
+      go directly to response_generation (skips retrieval — reply is ready).
+    - Otherwise go to rag_retrieval as before.
+    """
+    if state.get("intent_target", "pipeline") != "pipeline" and state.get("final_reply"):
+        return "response_generation"
     return "rag_retrieval"
 
 
@@ -590,12 +686,13 @@ def route_after_action_decision(state: ServiceDeskState) -> str:
 # ---------------------------------------------------------------------------
 
 def build_servicedesk_graph() -> StateGraph:
-    """Construct and compile the LangGraph StateGraph workflow."""
+    """Construct and compile the LangGraph StateGraph workflow (10 nodes)."""
     builder = StateGraph(ServiceDeskState)
 
     # Add Nodes
     builder.add_node("intake", intake_node)
     builder.add_node("triage_processing", triage_node)
+    builder.add_node("intent_router", intent_router_node)       # NEW (node 10)
     builder.add_node("security_escalation", security_escalation_node)
     builder.add_node("rag_retrieval", rag_retrieval_node)
     builder.add_node("action_decision", action_decision_node)
@@ -608,11 +705,23 @@ def build_servicedesk_graph() -> StateGraph:
     builder.add_edge(START, "intake")
     builder.add_edge("intake", "triage_processing")
 
+    # After triage: security incidents bypass intent router entirely
     builder.add_conditional_edges(
         "triage_processing",
         route_after_triage,
         {
             "security_escalation": "security_escalation",
+            "intent_router": "intent_router",
+        },
+    )
+
+    # After intent router: handled intents skip retrieval and go to response_generation;
+    # pipeline messages go to rag_retrieval as before.
+    builder.add_conditional_edges(
+        "intent_router",
+        route_after_intent,
+        {
+            "response_generation": "response_generation",
             "rag_retrieval": "rag_retrieval",
         },
     )
@@ -674,6 +783,9 @@ def run_servicedesk_workflow(
         "triage": {},
         "is_security_incident": False,
         "conversation_history": "",
+        "intent": None,
+        "intent_confidence": None,
+        "intent_target": "pipeline",
         "retrieved_docs": [],
         "citations": [],
         "action_requested": None,

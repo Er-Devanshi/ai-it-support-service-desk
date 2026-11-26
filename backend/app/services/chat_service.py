@@ -52,4 +52,6 @@ def process_message(
         action_executed=state.get("action_result"),
         citations=state.get("citations", []),
         mode=state.get("mode", "live"),
+        intent=state.get("intent"),
+        intent_confidence=state.get("intent_confidence"),
     )
